@@ -1,4 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMk4VN0Yp3MeW-LU",
+  authDomain: "kaash-app.firebaseapp.com",
+  projectId: "kaash-app",
+  storageBucket: "kaash-app.firebasestorage.app",
+  messagingSenderId: "404911023324",
+  appId: "1:404911023324:web:83384f9f85bb260e180019",
+  measurementId: "G-CJD67NE58W"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const googleProvider = new GoogleAuthProvider();
+
 import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon } from "lucide-react";
 
 // ─── WARM CINEMA THEME ──────────────────────────────────────────────
@@ -99,8 +119,32 @@ export default function App() {
   const [expandR, setExpandR] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
   const [pendingWatch, setPendingWatch] = useState(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [firebaseReady, setFirebaseReady] = useState(false);
   const [lang, setLang] = useState("EN");
   const [settingsPage, setSettingsPage] = useState(null);
+
+  // ─── FIREBASE AUTH LISTENER ───
+  useEffect(()=>{
+    const unsub = onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        setLoggedIn(true);
+        setUserEmail(user.email);
+        setUserName(user.displayName||"");
+        const userRef = doc(db,"users",user.uid);
+        const snap = await getDoc(userRef);
+        if(snap.exists() && snap.data().isPremium) setPremium(true);
+      } else {
+        setLoggedIn(false);
+      }
+      setFirebaseReady(true);
+    });
+    return ()=>unsub();
+  },[]);
+
+  // ─── SIGN OUT ───
+  const handleSignOut = async ()=>{ await signOut(auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
 
   const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:"Georgia,serif", height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
 
@@ -147,7 +191,7 @@ export default function App() {
           <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.gold,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
-          <button onClick={()=>{ if(!termsChecked) return; setLoggedIn(true); if(pendingWatch){setScenario(pendingWatch.sc);setEvent(pendingWatch.ev);} if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
+          <button onClick={async ()=>{ if(!termsChecked) return; try { const result = await signInWithPopup(auth, googleProvider); const user = result.user; setLoggedIn(true); setUserEmail(user.email); setUserName(user.displayName); const userRef = doc(db,"users",user.uid); await setDoc(userRef,{email:user.email,name:user.displayName,lastSeen:new Date().toISOString()},{merge:true}); if(pendingWatch){setScenario(pendingWatch.sc);setEvent(pendingWatch.ev);} if(!premium)setScreen("ad");else setScreen("disclaimer"); } catch(e){ console.error(e); } }}
             style={{width:"100%",maxWidth:320,padding:"13px 0",background:termsChecked?"#fff":"#5A5247",border:"none",borderRadius:10,color:termsChecked?"#222":"#999",cursor:termsChecked?"pointer":"not-allowed",fontFamily:"sans-serif",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"all 0.2s"}}>
             <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
           </button>
@@ -244,12 +288,12 @@ export default function App() {
     if (settingsPage==="account") return (
       <Wrap title="Account Details">
         <div style={{width:64,height:64,borderRadius:"50%",background:`linear-gradient(135deg,${C.gold},${C.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto 20px"}}>🎓</div>
-        <Field label="NAME" value={loggedIn?USER.name:"Guest"}/>
-        <Field label="EMAIL" value={loggedIn?"aman@example.com":"Not signed in"}/>
+        <Field label="NAME" value={loggedIn?(userName||USER.name):"Guest"}/>
+        <Field label="EMAIL" value={loggedIn?(userEmail||"Loading..."):"Not signed in"}/>
         <Field label="PLAN" value={premium?"KAASH Ad-Free (₹49/month)":"Free (with ads)"}/>
         <Field label="MEMBER SINCE" value={loggedIn?"June 2026":"—"}/>
         {!loggedIn&&<button onClick={()=>{setSettingsPage(null);setScreen("login");}} style={{width:"100%",padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",marginTop:8}}>Sign In with Google</button>}
-        {loggedIn&&<button onClick={()=>{setLoggedIn(false);setPremium(false);}} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,fontSize:14,cursor:"pointer",fontFamily:"sans-serif",marginTop:8}}>Sign Out</button>}
+        {loggedIn&&<button onClick={handleSignOut} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,fontSize:14,cursor:"pointer",fontFamily:"sans-serif",marginTop:8}}>Sign Out</button>}
       </Wrap>
     );
     if (settingsPage==="subscription") return (
@@ -500,7 +544,7 @@ export default function App() {
       <div style={{flex:1,overflowY:"auto",padding:"0 0 20px"}}>
         <div style={{background:`linear-gradient(135deg,${C.goldBg},transparent)`,padding:"40px 24px 24px",textAlign:"center"}}>
           <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.gold},${C.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🎓</div>
-          <div style={{fontSize:20,fontWeight:900}}>{loggedIn?USER.name:"Guest Explorer"}</div>
+          <div style={{fontSize:20,fontWeight:900}}>{loggedIn?(userName||USER.name):"Guest Explorer"}</div>
           <div style={{fontSize:11,color:C.gold,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?USER.level:"Not signed in"}</div>
           {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.goldBg,border:`1px solid ${C.goldDark}`,borderRadius:20,display:"inline-block",fontSize:11,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
             : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.gold,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>GO AD-FREE — ₹49/MONTH</button>}

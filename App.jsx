@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
@@ -127,6 +127,19 @@ export default function App() {
 
   // ─── FIREBASE AUTH LISTENER ───
   useEffect(()=>{
+    // Handle redirect result when user returns from Google sign-in
+    getRedirectResult(auth).then(async (result)=>{
+      if(result && result.user){
+        const user = result.user;
+        setLoggedIn(true);
+        setUserEmail(user.email);
+        setUserName(user.displayName||"");
+        const userRef = doc(db,"users",user.uid);
+        await setDoc(userRef,{email:user.email,name:user.displayName,lastSeen:new Date().toISOString()},{merge:true});
+        setScreen("home");
+      }
+    }).catch(e=>console.error(e));
+
     const unsub = onAuthStateChanged(auth, async (user)=>{
       if(user){
         setLoggedIn(true);
@@ -191,7 +204,7 @@ export default function App() {
           <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.gold,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
-          <button onClick={async ()=>{ if(!termsChecked) return; try { const result = await signInWithPopup(auth, googleProvider); const user = result.user; setLoggedIn(true); setUserEmail(user.email); setUserName(user.displayName); const userRef = doc(db,"users",user.uid); await setDoc(userRef,{email:user.email,name:user.displayName,lastSeen:new Date().toISOString()},{merge:true}); if(pendingWatch){setScenario(pendingWatch.sc);setEvent(pendingWatch.ev);} if(!premium)setScreen("ad");else setScreen("disclaimer"); } catch(e){ console.error(e); } }}
+          <button onClick={async ()=>{ if(!termsChecked) return; try { localStorage.setItem("kaash_terms","1"); await signInWithRedirect(auth, googleProvider); } catch(e){ console.error(e); } }}
             style={{width:"100%",maxWidth:320,padding:"13px 0",background:termsChecked?"#fff":"#5A5247",border:"none",borderRadius:10,color:termsChecked?"#222":"#999",cursor:termsChecked?"pointer":"not-allowed",fontFamily:"sans-serif",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"all 0.2s"}}>
             <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
           </button>

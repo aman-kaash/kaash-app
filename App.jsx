@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send } from "lucide-react";
+
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
@@ -19,8 +21,6 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send } from "lucide-react";
-
 // ─── WARM CINEMA THEME ──────────────────────────────────────────────
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
 // Replace with your Razorpay Key ID from the Razorpay Dashboard
@@ -30,7 +30,7 @@ const RAZORPAY_KEY_ID = "rzp_test_REPLACE_WITH_YOUR_KEY_ID";
 // Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
 // Once annual app revenue crosses ₹20 lakh, GST registration required
 // At that point update these prices to add 18% GST
-const PRICING = {
+const KAASH_PLANS = {
   monthly: { amount:49,  label:"Monthly", paise:4900,  savingNote:"",            perMonth:49 },
   yearly:  { amount:499, label:"Yearly",  paise:49900, savingNote:"Save ₹89 vs monthly", perMonth:41.58 },
 };
@@ -247,7 +247,7 @@ export default function App() {
         amount: order.amount,
         currency: "INR",
         name: "KAASH",
-        description: `KAASH Ad-Free ${PRICING[selectedPlan].label}`,
+        description: `KAASH Ad-Free ${KAASH_PLANS[selectedPlan].label}`,
         order_id: order.id,
         prefill: {email:userEmail, name:userName},
         notes: {plan:selectedPlan},
@@ -276,7 +276,7 @@ export default function App() {
             await setDoc(doc(db,"payments",response.razorpay_payment_id),{
               userId:auth.currentUser.uid, email:userEmail, name:userName,
               plan:selectedPlan,
-              amount:PRICING[selectedPlan].amount,
+              amount:KAASH_PLANS[selectedPlan].amount,
               currency:"INR",
               razorpayOrderId:response.razorpay_order_id,
               razorpayPaymentId:response.razorpay_payment_id,
@@ -411,7 +411,7 @@ export default function App() {
         </div>
         <div style={{padding:"0 20px 24px"}}>
           <div style={{marginBottom:14}}>
-            {Object.entries(PRICING).map(([planKey,plan])=>(
+            {Object.entries(KAASH_PLANS).map(([planKey,plan])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
                 style={{background:selectedPlan===planKey?C.goldBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.gold:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
                 {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.gold,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
@@ -440,7 +440,7 @@ export default function App() {
           {paymentError&&<div style={{background:"rgba(199,93,74,0.14)",border:"1px solid rgba(199,93,74,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
           <button onClick={initiatePayment} disabled={paymentLoading}
             style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.gold,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
-            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+PRICING[selectedPlan].total.toFixed(2)+"/"+PRICING[selectedPlan].label.toLowerCase()}
+            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+KAASH_PLANS[selectedPlan].total.toFixed(2)+"/"+KAASH_PLANS[selectedPlan].label.toLowerCase()}
           </button>
           <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.5}}>
             Secure payment via Razorpay · UPI · Cards · Net Banking<br/>Cancel anytime · No hidden fees

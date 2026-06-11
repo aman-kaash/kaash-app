@@ -25,7 +25,7 @@ import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, Ch
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
 // Replace with your Razorpay Key ID from the Razorpay Dashboard
 // Use rzp_test_XXXX while testing, rzp_live_XXXX for production
-const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
+const RAZORPAY_KEY_ID = "rzp_test_REPLACE_WITH_YOUR_KEY_ID";
 
 // Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
 // Once annual app revenue crosses ₹20 lakh, GST registration required
@@ -411,21 +411,21 @@ export default function App() {
         </div>
         <div style={{padding:"0 20px 24px"}}>
           <div style={{marginBottom:14}}>
-            {Object.entries(PRICING).map(([key,plan])=>(
-              <div key={key} onClick={()=>setSelectedPlan(key)}
-                style={{background:selectedPlan===key?C.goldBg:C.card,border:`${selectedPlan===key?2:1}px solid ${selectedPlan===key?C.gold:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {key==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.gold,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
+            {Object.entries(PRICING).map(([planKey,plan])=>(
+              <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
+                style={{background:selectedPlan===planKey?C.goldBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.gold:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.gold,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",marginBottom:2}}>{plan.label}</div>
                     {plan.savingNote&&<div style={{fontSize:11,color:C.green,fontFamily:"sans-serif"}}>{plan.savingNote}</div>}
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===key?C.gold:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
-                    {plan.perMonth&&key==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{plan.perMonth}/month</div>}
+                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===planKey?C.gold:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
+                    {plan.perMonth&&planKey==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{plan.perMonth}/month</div>}
                   </div>
                 </div>
-                {selectedPlan===key&&<CheckCircle size={14} color={C.gold} style={{position:"absolute",top:16,right:16}}/>}
+                {selectedPlan===planKey&&<CheckCircle size={14} color={C.gold} style={{position:"absolute",top:16,right:16}}/>}
               </div>
             ))}
           </div>

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 
 // ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
 const firebaseConfig = {
@@ -19,9 +19,22 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon } from "lucide-react";
+import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send } from "lucide-react";
 
 // ─── WARM CINEMA THEME ──────────────────────────────────────────────
+// ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
+// Replace with your Razorpay Key ID from the Razorpay Dashboard
+// Use rzp_test_XXXX while testing, rzp_live_XXXX for production
+const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
+
+// Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
+// Once annual app revenue crosses ₹20 lakh, GST registration required
+// At that point update these prices to add 18% GST
+const PRICING = {
+  monthly: { amount:49,  label:"Monthly", paise:4900,  savingNote:"",            perMonth:49 },
+  yearly:  { amount:499, label:"Yearly",  paise:49900, savingNote:"Save ₹89 vs monthly", perMonth:41.58 },
+};
+
 const C = {
   bg:"#1A1613", surface:"#231E19", card:"#2A241E", elevated:"#352E25", border:"#3D362C",
   gold:"#E8B84B", goldLight:"#F5D076", goldDark:"#A67C2E", goldBg:"rgba(232,184,75,0.12)",
@@ -104,7 +117,7 @@ const EVENTS = [
 const ERAS = ["ALL","ANCIENT","MODERN","CONTEMPORARY"];
 
 export default function App() {
-  const [screen, setScreen] = useState("onboard");
+  const [screen, setScreen] = useState("home");
   const [slide, setSlide] = useState(0);
   const [tab, setTab] = useState("home");
   const [event, setEvent] = useState(null);
@@ -122,8 +135,21 @@ export default function App() {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [firebaseReady, setFirebaseReady] = useState(false);
+  const [dynamicEvents, setDynamicEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [upNextScenario, setUpNextScenario] = useState(null);
+  const [upNextEvent, setUpNextEvent] = useState(null);
+  const [upNextCount, setUpNextCount] = useState(10);
+  const [hasSeenOnboard, setHasSeenOnboard] = useState(false);
   const [lang, setLang] = useState("EN");
   const [settingsPage, setSettingsPage] = useState(null);
+  const [watched, setWatched] = useState(new Set(["ww1_1","ww1_2","ww2_1"]));
+  const [suggestionSent, setSuggestionSent] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("yearly");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [newEvents, setNewEvents] = useState([]);
+  const markW = (id) => setWatched(prev => new Set([...prev, id]));
 
   // ─── FIREBASE AUTH LISTENER ───
   useEffect(()=>{
@@ -135,10 +161,53 @@ export default function App() {
         setUserEmail(user.email);
         setUserName(user.displayName||"");
         const userRef = doc(db,"users",user.uid);
-        await setDoc(userRef,{email:user.email,name:user.displayName,lastSeen:new Date().toISOString()},{merge:true});
-        setScreen("home");
+        const snap = await getDoc(userRef);
+        const seen = snap.exists() && snap.data().hasSeenOnboard;
+        await setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
+        if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
+        else { setHasSeenOnboard(true); setScreen("home"); }
       }
     }).catch(e=>console.error(e));
+
+    // Load Razorpay checkout.js script
+    const rzpScript = document.createElement("script");
+    rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
+    rzpScript.async = true;
+    document.body.appendChild(rzpScript);
+
+    // Load events from Firestore (app reads dynamic content from here)
+    const loadEvents = async () => {
+      try {
+        const snap = await getDocs(collection(db,"events"));
+        if(snap.size > 0){
+          const loaded = [];
+          for(const evDoc of snap.docs){
+            const evData = evDoc.data();
+            if(!evData.title) continue; // skip incomplete docs
+            const scenSnap = await getDocs(collection(db,"events",evDoc.id,"scenarios"));
+            const scenarios = [];
+            scenSnap.forEach(s => { if(s.data().num) scenarios.push(s.data()); });
+            scenarios.sort((a,b)=>a.num-b.num);
+            if(scenarios.length > 0) loaded.push({...evData, id:evDoc.id, scenarios});
+          }
+          if(loaded.length > 0) setDynamicEvents(loaded);
+        }
+      } catch(e){ console.error("Firestore events load failed, using built-in content",e); }
+      setEventsLoading(false);
+    };
+    loadEvents();
+
+    // Load What's New events (sorted by createdAt desc)
+    const loadNew = async () => {
+      try {
+        const snap = await getDocs(collection(db,"events"));
+        const ne = [];
+        snap.forEach(d => { const data=d.data(); if(data.createdAt) ne.push({...data,id:d.id}); });
+        ne.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+        setNewEvents(ne);
+      } catch(e) {}
+    };
+    loadNew();
 
     const unsub = onAuthStateChanged(auth, async (user)=>{
       if(user){
@@ -159,6 +228,91 @@ export default function App() {
   // ─── SIGN OUT ───
   const handleSignOut = async ()=>{ await signOut(auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
 
+  const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : ACTIVE_EVENTS;
+
+  const initiatePayment = async () => {
+    if(!auth.currentUser){ setPaywall(false); setScreen("login"); return; }
+    if(!window.Razorpay){ setPaymentError("Payment system loading. Please wait a moment and try again."); return; }
+    setPaymentLoading(true); setPaymentError("");
+    try {
+      const res = await fetch("/api/create-order",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({plan:selectedPlan, userId:auth.currentUser.uid, userEmail}),
+      });
+      if(!res.ok){ const e=await res.json(); throw new Error(e.error||"Order creation failed"); }
+      const order = await res.json();
+      const options = {
+        key: RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: "INR",
+        name: "KAASH",
+        description: `KAASH Ad-Free ${PRICING[selectedPlan].label}`,
+        order_id: order.id,
+        prefill: {email:userEmail, name:userName},
+        notes: {plan:selectedPlan},
+        theme: {color:"#E8B84B"},
+        modal: {confirm_close:true},
+        handler: async (response) => {
+          try {
+            const vRes = await fetch("/api/verify-payment",{
+              method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({
+                razorpay_order_id:response.razorpay_order_id,
+                razorpay_payment_id:response.razorpay_payment_id,
+                razorpay_signature:response.razorpay_signature,
+                plan:selectedPlan, userId:auth.currentUser.uid, userEmail,
+              }),
+            });
+            const vData = await vRes.json();
+            if(!vData.success) throw new Error("Payment verification failed");
+            const expiry = selectedPlan==="yearly"
+              ? new Date(Date.now()+365*24*60*60*1000).toISOString()
+              : new Date(Date.now()+30*24*60*60*1000).toISOString();
+            await setDoc(doc(db,"users",auth.currentUser.uid),
+              {isPremium:true, premiumPlan:selectedPlan, premiumExpiry:expiry, premiumSince:new Date().toISOString()},
+              {merge:true});
+            await setDoc(doc(db,"payments",response.razorpay_payment_id),{
+              userId:auth.currentUser.uid, email:userEmail, name:userName,
+              plan:selectedPlan,
+              amount:PRICING[selectedPlan].amount,
+              currency:"INR",
+              razorpayOrderId:response.razorpay_order_id,
+              razorpayPaymentId:response.razorpay_payment_id,
+              paidAt:new Date().toISOString(),
+              financialYear: new Date().getMonth()>=3
+                ? `${new Date().getFullYear()}-${new Date().getFullYear()+1}`
+                : `${new Date().getFullYear()-1}-${new Date().getFullYear()}`,
+              status:"completed",
+            });
+            setPremium(true); setPaywall(false); setPaymentLoading(false);
+          } catch(e){
+            setPaymentError("Payment received but verification failed. Email support@kaash.app with payment ID: "+response.razorpay_payment_id);
+            setPaymentLoading(false);
+          }
+        },
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed",(r)=>{ setPaymentError("Payment failed: "+(r.error?.description||"Please try again")); setPaymentLoading(false); });
+      rzp.open();
+    } catch(e){ setPaymentError(e.message||"Something went wrong. Please try again."); setPaymentLoading(false); }
+  };
+
+  const getNextScenario = () => {
+    if(!event||!scenario) return {sc:null,ev:null};
+    const idx = event.scenarios.findIndex(s=>s.num===scenario.num);
+    if(idx<event.scenarios.length-1) return {sc:event.scenarios[idx+1],ev:event};
+    const evIdx = ACTIVE_EVENTS.findIndex(e=>e.id===event.id);
+    const nextEv = ACTIVE_EVENTS[(evIdx+1)%EVENTS.length];
+    return {sc:nextEv.scenarios[0],ev:nextEv};
+  };
+
+  const triggerUpNext = () => {
+    const {sc,ev} = getNextScenario();
+    setUpNextScenario(sc); setUpNextEvent(ev); setUpNextCount(10); setScreen("upnext");
+  };
+
   const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:"Georgia,serif", height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
 
   const attemptWatch = (sc, ev) => {
@@ -172,7 +326,7 @@ export default function App() {
     const slides=[
       {title:"कaश",sub:"What If History Went Differently?",body:"Every turning point in history balanced on a razor's edge. One moment different — the entire world changes.",emoji:"⚡"},
       {title:"5 Timelines",sub:"Per Historical Event",body:"Five cinematic documentaries per event, each exploring a different way history could have unfolded. 5 minutes each.",emoji:"🎬"},
-      {title:"100 Events",sub:"From Ancient to Modern",body:"From Alexander the Great to the Cuban Missile Crisis. India's Partition to the Moon Landing. New events every week.",emoji:"🌍"},
+      {title:"Never Finished",sub:"New Timelines Every Week",body:"History has infinite forks. Every week, a new turning point unlocks. The past is never truly settled — and neither is KAASH.",emoji:"🌍"},
     ];
     const sl=slides[slide];
     return (
@@ -188,12 +342,28 @@ export default function App() {
         </div>
         <div style={{padding:"20px 24px 32px",display:"flex",gap:12}}>
           {slide>0&&<button onClick={()=>setSlide(p=>p-1)} style={{flex:1,padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,cursor:"pointer",fontFamily:"sans-serif",fontSize:14}}>Back</button>}
-          <button onClick={()=>{if(slide<2)setSlide(p=>p+1);else setScreen("home");}} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:14,fontWeight:700,letterSpacing:1}}>
+          <button onClick={async ()=>{
+            if(slide<2){ setSlide(p=>p+1); return; }
+            setScreen("home");
+            if(loggedIn && auth.currentUser){
+              try{ await setDoc(doc(db,"users",auth.currentUser.uid),{hasSeenOnboard:true},{merge:true}); }catch(e){}
+            }
+          }} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:14,fontWeight:700,letterSpacing:1}}>
             {slide<2?"CONTINUE →":"START EXPLORING →"}
           </button>
         </div>
       </div>
     );
+  }
+
+  // ─── UP NEXT SCREEN ───
+  if (screen==="upnext" && upNextScenario && upNextEvent) {
+    return <UpNextScreen
+      scenario={upNextScenario} event={upNextEvent} countdown={upNextCount}
+      setCountdown={setUpNextCount}
+      onPlay={()=>{ setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
+      onSkip={()=>setScreen("home")}
+    />;
   }
 
   // ─── LOGIN GATE ───
@@ -233,150 +403,51 @@ export default function App() {
   if (paywall) {
     return (
       <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:`linear-gradient(180deg,rgba(232,184,75,0.15),transparent)`,padding:"52px 24px 20px",textAlign:"center",position:"relative"}}>
-          <button onClick={()=>setPaywall(false)} style={{position:"absolute",top:52,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer"}}><X size={22}/></button>
-          <div style={{fontSize:40,marginBottom:8}}>✦</div>
-          <div style={{fontSize:26,fontWeight:900,letterSpacing:4,color:C.gold}}>GO AD-FREE</div>
-          <div style={{fontSize:14,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>One simple plan. No ads, ever.<br/>Everything unlocked. Cancel anytime.</div>
+        <div style={{background:`linear-gradient(180deg,rgba(232,184,75,0.15),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
+          <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
+          <div style={{fontSize:36,marginBottom:8}}>✦</div>
+          <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:C.gold}}>GO AD-FREE</div>
+          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>One price. No ads. Full access. Cancel anytime.</div>
         </div>
-        <div style={{padding:"0 24px 24px"}}>
-          {[["🚫","No ads — ever. Watch every timeline uninterrupted."],["🎬","Full access to all 100 events & 500 timelines"],["⚡","Early access to new events every week"],["📥","Save your favourite timelines"],["💛","Support independent history storytelling"]].map(([i,t],x)=>(
-            <div key={x} style={{display:"flex",alignItems:"center",gap:12,background:C.card,borderRadius:10,padding:"13px 14px",marginBottom:8,border:`1px solid ${C.border}`}}>
-              <span style={{fontSize:20}}>{i}</span><span style={{fontSize:13,color:C.text,fontFamily:"sans-serif"}}>{t}</span>
+        <div style={{padding:"0 20px 24px"}}>
+          <div style={{marginBottom:14}}>
+            {Object.entries(PRICING).map(([key,plan])=>(
+              <div key={key} onClick={()=>setSelectedPlan(key)}
+                style={{background:selectedPlan===key?C.goldBg:C.card,border:`${selectedPlan===key?2:1}px solid ${selectedPlan===key?C.gold:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {key==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.gold,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",marginBottom:2}}>{plan.label}</div>
+                    {plan.savingNote&&<div style={{fontSize:11,color:C.green,fontFamily:"sans-serif"}}>{plan.savingNote}</div>}
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===key?C.gold:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
+                    {plan.perMonth&&key==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{plan.perMonth}/month</div>}
+                  </div>
+                </div>
+                {selectedPlan===key&&<CheckCircle size={14} color={C.gold} style={{position:"absolute",top:16,right:16}}/>}
+              </div>
+            ))}
+          </div>
+          <div style={{background:C.surface,borderRadius:8,padding:"10px 12px",marginBottom:12,fontSize:11,color:C.textMuted,fontFamily:"sans-serif",lineHeight:1.6}}>
+            Final price. No hidden charges. Cancel anytime.
+          </div>
+          {["🚫 Zero ads — ever","🎬 All timelines on all events","🌐 English + Hindi narration","⚡ New events every week"].map((f,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,fontSize:13,color:C.text,fontFamily:"sans-serif"}}>
+              <span>{f}</span>
             </div>
           ))}
-          <div style={{background:C.goldBg,border:`2px solid ${C.gold}`,borderRadius:14,padding:"22px 20px",textAlign:"center",margin:"20px 0 16px"}}>
-            <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",letterSpacing:1}}>KAASH AD-FREE</div>
-            <div style={{display:"flex",alignItems:"baseline",justifyContent:"center",gap:4,margin:"8px 0"}}>
-              <span style={{fontSize:44,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>₹49</span>
-              <span style={{fontSize:16,color:C.textSec,fontFamily:"sans-serif"}}>/month</span>
-            </div>
-            <div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Less than a cup of coffee. Cancel anytime.</div>
+          {paymentError&&<div style={{background:"rgba(199,93,74,0.14)",border:"1px solid rgba(199,93,74,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
+          <button onClick={initiatePayment} disabled={paymentLoading}
+            style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.gold,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
+            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+PRICING[selectedPlan].total.toFixed(2)+"/"+PRICING[selectedPlan].label.toLowerCase()}
+          </button>
+          <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.5}}>
+            Secure payment via Razorpay · UPI · Cards · Net Banking<br/>Cancel anytime · No hidden fees
           </div>
-          <button onClick={()=>{setPremium(true);setPaywall(false);}} style={{width:"100%",padding:"15px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>GO AD-FREE FOR ₹49/MONTH</button>
-          <div style={{textAlign:"center",fontSize:11,color:C.textMuted,fontFamily:"sans-serif",marginTop:12,lineHeight:1.5}}>Secure payment via Razorpay · UPI, Cards, Net Banking<br/>No hidden fees · Cancel in one tap</div>
-          <div style={{height:30}}/>
+          <div style={{height:24}}/>
         </div>
       </div>
-    );
-  }
-
-  // ─── SETTINGS HUB (all pages editable later) ───
-  if (settingsPage) {
-    const Wrap = ({title,children}) => (
-      <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:C.surface,padding:"44px 16px 14px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
-          <button onClick={()=>setSettingsPage(settingsPage==="menu"?null:"menu")} style={{background:"transparent",border:"none",cursor:"pointer",display:"flex"}}><ArrowLeft size={20} color={C.text}/></button>
-          <span style={{fontSize:15,fontWeight:700,fontFamily:"sans-serif"}}>{title}</span>
-        </div>
-        <div style={{flex:1,padding:"18px 18px 30px"}}>{children}</div>
-      </div>
-    );
-    const Field = ({label,value}) => (
-      <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,letterSpacing:1.5,color:C.textMuted,fontFamily:"sans-serif",marginBottom:4}}>{label}</div>
-        <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",background:C.card,borderRadius:8,padding:"12px 14px",border:`1px solid ${C.border}`}}>{value}</div>
-      </div>
-    );
-
-    if (settingsPage==="menu") {
-      const items=[
-        ["account","Account Details","👤"],["subscription","Manage Subscription","💳"],
-        ["language","Narration Language","🌐"],["contact","Contact & Support","💬"],
-        ["export","Export My Data","📤"],["legal","About & Legal","📜"],["delete","Delete Account","⚠️"],
-      ];
-      return (
-        <Wrap title="Settings">
-          {items.map(([id,label,icon])=>(
-            <div key={id} onClick={()=>setSettingsPage(id)} style={{display:"flex",alignItems:"center",gap:14,background:C.card,borderRadius:10,padding:"15px 16px",marginBottom:10,cursor:"pointer",border:`1px solid ${C.border}`}}>
-              <span style={{fontSize:20}}>{icon}</span>
-              <span style={{fontSize:14,color:id==="delete"?C.red:C.text,fontFamily:"sans-serif",fontWeight:id==="delete"?700:400}}>{label}</span>
-              <ChevronRight size={18} color={C.textMuted} style={{marginLeft:"auto"}}/>
-            </div>
-          ))}
-          <div style={{textAlign:"center",marginTop:24,fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>KAASH v1.0 · Made in India 🇮🇳</div>
-        </Wrap>
-      );
-    }
-    if (settingsPage==="account") return (
-      <Wrap title="Account Details">
-        <div style={{width:64,height:64,borderRadius:"50%",background:`linear-gradient(135deg,${C.gold},${C.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto 20px"}}>🎓</div>
-        <Field label="NAME" value={loggedIn?(userName||USER.name):"Guest"}/>
-        <Field label="EMAIL" value={loggedIn?(userEmail||"Loading..."):"Not signed in"}/>
-        <Field label="PLAN" value={premium?"KAASH Ad-Free (₹49/month)":"Free (with ads)"}/>
-        <Field label="MEMBER SINCE" value={loggedIn?"June 2026":"—"}/>
-        {!loggedIn&&<button onClick={()=>{setSettingsPage(null);setScreen("login");}} style={{width:"100%",padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",marginTop:8}}>Sign In with Google</button>}
-        {loggedIn&&<button onClick={handleSignOut} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,fontSize:14,cursor:"pointer",fontFamily:"sans-serif",marginTop:8}}>Sign Out</button>}
-      </Wrap>
-    );
-    if (settingsPage==="subscription") return (
-      <Wrap title="Manage Subscription">
-        <div style={{background:premium?C.goldBg:C.card,border:`1px solid ${premium?C.gold:C.border}`,borderRadius:12,padding:18,marginBottom:16,textAlign:"center"}}>
-          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif"}}>Current Plan</div>
-          <div style={{fontSize:20,fontWeight:900,color:premium?C.gold:C.text,fontFamily:"sans-serif",margin:"6px 0"}}>{premium?"KAASH Ad-Free":"Free"}</div>
-          <div style={{fontSize:12,color:C.textMuted,fontFamily:"sans-serif"}}>{premium?"₹49/month · renews monthly":"Watch with ads, or go ad-free"}</div>
-        </div>
-        {!premium ? <button onClick={()=>{setSettingsPage(null);setPaywall(true);}} style={{width:"100%",padding:"14px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>GO AD-FREE — ₹49/MONTH</button>
-          : <button onClick={()=>setPremium(false)} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,fontSize:14,cursor:"pointer",fontFamily:"sans-serif"}}>Cancel Subscription</button>}
-        <div style={{marginTop:18,fontSize:11,color:C.textMuted,fontFamily:"sans-serif",lineHeight:1.6,textAlign:"center"}}>Payments handled securely by Razorpay.<br/>UPI · Cards · Net Banking · Wallets</div>
-      </Wrap>
-    );
-    if (settingsPage==="language") return (
-      <Wrap title="Narration Language">
-        <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:18}}>Choose your preferred narration language. Subtitles are available in English for all videos.</div>
-        {[["EN","English","Default narration"],["HI","हिंदी (Hindi)","हिंदी में सुनें"]].map(([code,name,sub])=>(
-          <div key={code} onClick={()=>setLang(code)} style={{display:"flex",alignItems:"center",gap:14,background:lang===code?C.goldBg:C.card,border:`${lang===code?2:1}px solid ${lang===code?C.gold:C.border}`,borderRadius:10,padding:"15px 16px",marginBottom:10,cursor:"pointer"}}>
-            <div><div style={{fontSize:15,fontWeight:700,fontFamily:"sans-serif",color:C.text}}>{name}</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>{sub}</div></div>
-            {lang===code&&<CheckCircle size={18} color={C.gold} style={{marginLeft:"auto"}}/>}
-          </div>
-        ))}
-        <div style={{marginTop:16,fontSize:11,color:C.textMuted,fontFamily:"sans-serif",lineHeight:1.6}}>More languages (Tamil, Bengali, Marathi) coming soon.</div>
-      </Wrap>
-    );
-    if (settingsPage==="contact") return (
-      <Wrap title="Contact & Support">
-        <div style={{background:C.card,borderRadius:10,padding:16,marginBottom:14,border:`1px solid ${C.border}`}}>
-          <div style={{fontSize:13,fontWeight:700,fontFamily:"sans-serif",marginBottom:6}}>📧 Email Support</div>
-          <div style={{fontSize:13,color:C.gold,fontFamily:"sans-serif"}}>support@kaash.app</div>
-          <div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif",marginTop:4}}>We reply within 24 hours</div>
-        </div>
-        <div style={{fontSize:11,letterSpacing:1.5,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:10,marginTop:18}}>FREQUENTLY ASKED</div>
-        {[["How are these videos made?","Each timeline is a researched, scripted documentary produced with modern video tools, then reviewed before publishing."],["Is this real history?","No — these are speculative 'what if' scenarios for educational entertainment. Real events are the starting point only."],["How do I cancel?","Settings → Manage Subscription → Cancel. Takes one tap, effective immediately."],["Will you add more languages?","Yes — Hindi is live, with Tamil, Bengali and Marathi planned."]].map(([q,a],i)=>(
-          <div key={i} style={{background:C.surface,borderRadius:8,padding:"12px 14px",marginBottom:8}}>
-            <div style={{fontSize:13,fontWeight:600,fontFamily:"sans-serif",color:C.text,marginBottom:4}}>{q}</div>
-            <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5}}>{a}</div>
-          </div>
-        ))}
-      </Wrap>
-    );
-    if (settingsPage==="export") return (
-      <Wrap title="Export My Data">
-        <div style={{display:"flex",justifyContent:"center",marginBottom:18}}><div style={{width:56,height:56,borderRadius:"50%",background:C.greenBg,display:"flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={26} color={C.green}/></div></div>
-        <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7,marginBottom:20,textAlign:"center"}}>You can download everything KAASH stores about you — your email and watch history. We never store anything else, and never sell your data.</div>
-        <button style={{width:"100%",padding:"14px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>📤 Email Me My Data</button>
-        <div style={{marginTop:12,fontSize:11,color:C.textMuted,fontFamily:"sans-serif",textAlign:"center"}}>We'll send a file to your registered email within 24 hours.</div>
-      </Wrap>
-    );
-    if (settingsPage==="legal") return (
-      <Wrap title="About & Legal">
-        <div style={{textAlign:"center",marginBottom:20}}><div style={{fontSize:26,fontWeight:900,letterSpacing:4,color:C.gold}}>KAASH</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif",letterSpacing:2}}>कaश · WHAT IF?</div></div>
-        {[["Terms of Service","The rules for using KAASH. Subscriptions renew monthly; cancel anytime. Content is fictional."],["Privacy Policy","We store only your email and watch history. Never sold. Deletable anytime."],["Content Disclaimer","All timelines are speculative fiction for educational entertainment — not records of real events or the views of any community, nation or group."]].map(([t,d],i)=>(
-          <div key={i} style={{background:C.card,borderRadius:10,padding:"14px 16px",marginBottom:10,border:`1px solid ${C.border}`,cursor:"pointer"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>{t}</span><ChevronRight size={16} color={C.textMuted}/></div>
-            <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5,marginTop:4}}>{d}</div>
-          </div>
-        ))}
-        <div style={{textAlign:"center",marginTop:20,fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>© 2026 KAASH · All rights reserved</div>
-      </Wrap>
-    );
-    if (settingsPage==="delete") return (
-      <Wrap title="Delete Account">
-        <div style={{display:"flex",justifyContent:"center",marginBottom:18}}><div style={{width:56,height:56,borderRadius:"50%",background:C.redBg||"rgba(199,93,74,0.14)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>⚠️</div></div>
-        <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",textAlign:"center",marginBottom:10,color:C.text}}>This cannot be undone</div>
-        <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7,marginBottom:24,textAlign:"center"}}>Deleting your account permanently removes your email, watch history, and subscription. This action is irreversible.</div>
-        <button style={{width:"100%",padding:"14px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>Permanently Delete My Account</button>
-        <button onClick={()=>setSettingsPage("menu")} style={{width:"100%",padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",marginTop:10}}>Keep My Account</button>
-      </Wrap>
     );
   }
 
@@ -420,6 +491,7 @@ export default function App() {
               {item.expanded&&item.content}
             </div>
           ))}
+          <button onClick={()=>{ const sId=event.id+"_"+scenario.num; markW(sId); triggerUpNext(); }} style={{width:"100%",padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>✓ DONE — PLAY NEXT TIMELINE</button>
           <div style={{display:"flex",gap:12,marginBottom:40}}>
             <button style={{flex:1,padding:"11px 0",border:`1px solid ${C.green}`,borderRadius:10,background:C.greenBg,color:C.green,cursor:"pointer",fontFamily:"sans-serif",fontSize:12,fontWeight:700,letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Share2 size={14}/>SHARE ON WHATSAPP</button>
             <button style={{padding:"11px 16px",border:`1px solid ${C.border}`,borderRadius:10,background:"transparent",color:C.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Bookmark size={14}/></button>
@@ -471,7 +543,7 @@ export default function App() {
   }
 
   // ─── MAIN TABS ───
-  const filtered = EVENTS.filter(e=>{
+  const filtered = ACTIVE_EVENTS.filter(e=>{
     const matchE=era==="ALL"||e.era===era;
     const matchQ=!q||e.title.toLowerCase().includes(q.toLowerCase())||e.tags.some(t=>t.toLowerCase().includes(q.toLowerCase()));
     return matchE&&matchQ;
@@ -497,7 +569,7 @@ export default function App() {
   );
 
   const HomeTab=()=>{
-    const featured=EVENTS[2];
+    const featured=ACTIVE_EVENTS[2];
     return (
       <div style={{flex:1,overflowY:"auto",paddingBottom:20}}>
         <div style={{background:featured.grad,minHeight:210,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 22px 22px",position:"relative"}}>
@@ -510,13 +582,13 @@ export default function App() {
           </div>
         </div>
         <div style={{background:C.surface,display:"flex",justifyContent:"space-around",padding:"12px 16px",marginBottom:20}}>
-          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
+          {[["100","ACTIVE_EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
         </div>
-        <Row title="INDIA'S ALTERNATE HISTORY" events={EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
-        <Row title="WORLD WARS & CONFLICTS" events={EVENTS.filter(e=>e.cat==="wars")}/>
-        <Row title="SCIENTIFIC TURNING POINTS" events={EVENTS.filter(e=>e.cat==="science"||e.id==="moon")}/>
-        <Row title="ANCIENT WORLD" events={EVENTS.filter(e=>e.cat==="ancient")}/>
-        <Row title="ALL EVENTS" events={EVENTS}/>
+        <Row title="INDIA'S ALTERNATE HISTORY" events={ACTIVE_EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
+        <Row title="WORLD WARS & CONFLICTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="wars")}/>
+        <Row title="SCIENTIFIC TURNING POINTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="science"||e.id==="moon")}/>
+        <Row title="ANCIENT WORLD" events={ACTIVE_EVENTS.filter(e=>e.cat==="ancient")}/>
+        <Row title="ALL ACTIVE_EVENTS" events={ACTIVE_EVENTS}/>
       </div>
     );
   };
@@ -538,18 +610,100 @@ export default function App() {
     </div>
   );
 
+  const sendSuggestion = async () => {
+    if(!q.trim()||suggestionSent) return;
+    try {
+      const id = q.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,50);
+      const ref = doc(db,"suggestions",id);
+      const snap = await getDoc(ref);
+      if(snap.exists()) {
+        await setDoc(ref,{count:(snap.data().count||0)+1,lastRequested:new Date().toISOString()},{merge:true});
+      } else {
+        await setDoc(ref,{query:q.trim(),count:1,createdAt:new Date().toISOString(),lastRequested:new Date().toISOString(),status:"pending"});
+      }
+      setSuggestionSent(true);
+    } catch(e){ console.error(e); }
+  };
+
   const SearchTab=()=>(
     <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
-      <div style={{position:"relative",marginBottom:16}}><Search size={16} color={C.gold} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search events, eras, regions..." style={{width:"100%",background:C.surface,border:`1px solid ${q?C.gold:C.border}`,borderRadius:10,padding:"11px 12px 11px 38px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"sans-serif"}}/></div>
-      {!q&&<div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>{["WW1","WW2","India","Moon","Alexander","Cuba","Nuclear"].map(tag=><button key={tag} onClick={()=>setQ(tag)} style={{padding:"7px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:20,color:C.textSec,fontSize:12,cursor:"pointer",fontFamily:"sans-serif"}}>#{tag}</button>)}</div>}
+      <div style={{position:"relative",marginBottom:16}}>
+        <Search size={16} color={C.gold} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/>
+        <input value={q} onChange={e=>{setQ(e.target.value);setSuggestionSent(false);}} placeholder="Search events, eras, regions..."
+          style={{width:"100%",background:C.surface,border:`1px solid ${q?C.gold:C.border}`,borderRadius:10,padding:"11px 12px 11px 38px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"sans-serif"}}/>
+        {q&&<button onClick={()=>{setQ("");setSuggestionSent(false);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:16}}>✕</button>}
+      </div>
+      {!q&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif",marginBottom:10}}>POPULAR TOPICS</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          {["WW1","WW2","India","Moon","Alexander","Cuba","Nuclear","Partition","Ancient","Space"].map(tag=>(
+            <button key={tag} onClick={()=>setQ(tag)} style={{padding:"7px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:20,color:C.textSec,fontSize:12,cursor:"pointer",fontFamily:"sans-serif"}}>#{tag}</button>
+          ))}
+        </div>
+      </div>}
       {filtered.map(e=>(
         <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:10,marginBottom:8,padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"center",border:`1px solid ${C.border}`}}>
-          <span style={{fontSize:28,flexShrink:0}}>{e.emoji}</span><div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginTop:2}}>{e.year} · {e.region} · 5 timelines</div></div><ChevronRight size={16} color={C.textMuted} style={{marginLeft:"auto",flexShrink:0}}/>
+          <span style={{fontSize:28,flexShrink:0}}>{e.emoji}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:700,lineHeight:1.3}}>{e.title}</div>
+            <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginTop:2}}>{e.year} · {e.region} · 5 timelines</div>
+          </div>
+          <ChevronRight size={16} color={C.textMuted} style={{flexShrink:0}}/>
         </div>
       ))}
-      {filtered.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:C.textMuted,fontFamily:"sans-serif",fontSize:13}}>No events found for "{q}"</div>}
+      {q&&filtered.length===0&&(
+        <div style={{textAlign:"center",padding:"32px 20px"}}>
+          <div style={{fontSize:32,marginBottom:12}}>🔍</div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No results for "{q}"</div>
+          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:20}}>We don't have this yet. Suggest it to us and we'll add it!</div>
+          {!suggestionSent
+            ? <button onClick={sendSuggestion} style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>
+                <Send size={14}/> Suggest "{q}"
+              </button>
+            : <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",background:C.greenBg,border:`1px solid ${C.green}`,borderRadius:10,color:C.green,fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>
+                <CheckCircle size={14}/> Suggestion sent! We'll review it.
+              </div>
+          }
+        </div>
+      )}
     </div>
   );
+
+  const WhatsNewTab=()=>{
+    const isNew = (d) => d && (Date.now()-new Date(d).getTime()) < 7*24*60*60*1000;
+    return (
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+          <div style={{width:3,height:20,background:C.gold,borderRadius:2}}/>
+          <div style={{fontSize:13,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>WHAT'S NEW</div>
+        </div>
+        <div style={{fontSize:12,color:C.textMuted,fontFamily:"sans-serif",marginBottom:20}}>New events and timelines added to KAASH</div>
+        {newEvents.length===0 ? (
+          <div style={{textAlign:"center",padding:"48px 20px"}}>
+            <div style={{fontSize:40,marginBottom:12}}>🎬</div>
+            <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>New drop every Tuesday</div>
+            <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>New alternate history events are added every week. Check back on Tuesday for the latest timelines.</div>
+          </div>
+        ) : newEvents.map((e,i)=>(
+          <div key={e.id||i} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:12,overflow:"hidden",cursor:"pointer",border:`1px solid ${C.border}`}}>
+            <div style={{background:e.grad||"linear-gradient(135deg,#2A2418,#0E0C0A)",height:100,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+              <span style={{fontSize:40}}>{e.emoji||"📜"}</span>
+              {isNew(e.createdAt)&&<div style={{position:"absolute",top:10,left:10,background:C.gold,borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,color:C.bg,letterSpacing:1}}>NEW</div>}
+              <div style={{position:"absolute",bottom:8,right:10,fontSize:10,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>📅 {e.year}</div>
+            </div>
+            <div style={{padding:"12px 14px"}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:4,lineHeight:1.3}}>{e.title}</div>
+              <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5,marginBottom:8}}>{e.desc?.slice(0,80)}...</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>{e.region} · {e.era}</span>
+                <span style={{fontSize:11,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>5 timelines →</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const ProfileTab=()=>{
     const pct=Math.round(USER.watched/USER.total*100);
@@ -586,7 +740,7 @@ export default function App() {
     );
   };
 
-  const tabs=[{id:"home",icon:<Home size={20}/>,label:"Home"},{id:"explore",icon:<Compass size={20}/>,label:"Explore"},{id:"search",icon:<Search size={20}/>,label:"Search"},{id:"profile",icon:<User size={20}/>,label:"Profile"}];
+  const tabs=[{id:"home",icon:<Home size={20}/>,label:"Home"},{id:"new",icon:<Bell size={20}/>,label:"New"},{id:"search",icon:<Search size={20}/>,label:"Search"},{id:"explore",icon:<Compass size={20}/>,label:"Explore"},{id:"profile",icon:<User size={20}/>,label:"Profile"}];
 
   return (
     <div style={s}>
@@ -599,6 +753,7 @@ export default function App() {
       </div>
       {tab==="home"&&<HomeTab/>}
       {tab==="explore"&&<ExploreTab/>}
+      {tab==="new"&&<WhatsNewTab/>}
       {tab==="search"&&<SearchTab/>}
       {tab==="profile"&&<ProfileTab/>}
       <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
@@ -607,6 +762,37 @@ export default function App() {
     </div>
   );
 }
+
+function UpNextScreen({scenario,event,countdown,setCountdown,onPlay,onSkip}){
+  useEffect(()=>{
+    if(countdown<=0){onPlay();return;}
+    const t=setTimeout(()=>setCountdown(c=>c-1),1000);
+    return()=>clearTimeout(t);
+  },[countdown,onPlay,setCountdown]);
+  return(
+    <div style={{display:"flex",flexDirection:"column",background:C.bg,color:C.text,fontFamily:"Georgia,serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
+      <div style={{background:event.grad,height:180,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",flexShrink:0}}>
+        <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.4)"}}/>
+        <span style={{fontSize:64,position:"relative"}}>{event.emoji}</span>
+      </div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 28px",textAlign:"center"}}>
+        <div style={{fontSize:11,color:C.green,letterSpacing:2,fontFamily:"sans-serif",fontWeight:700,marginBottom:16}}>✓ TIMELINE COMPLETE</div>
+        <div style={{fontSize:11,color:C.textMuted,letterSpacing:1,fontFamily:"sans-serif",marginBottom:8}}>UP NEXT</div>
+        <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:6}}>{scenario.title}</div>
+        <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:6}}>"{scenario.tagline}"</div>
+        <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:28}}>from: {event.short}</div>
+        <div style={{width:64,height:64,borderRadius:"50%",border:`3px solid ${C.gold}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,position:"relative"}}>
+          <span style={{fontSize:22,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{countdown}</span>
+        </div>
+      </div>
+      <div style={{padding:"0 24px 32px",display:"flex",gap:12,flexShrink:0}}>
+        <button onClick={onSkip} style={{flex:1,padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,cursor:"pointer",fontFamily:"sans-serif",fontSize:13}}>Home</button>
+        <button onClick={onPlay} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700,letterSpacing:1}}>▶ PLAY NOW</button>
+      </div>
+    </div>
+  );
+}
+
 
 function AdScreen({onDone,onUpgrade}){
   const [count,setCount]=useState(5);

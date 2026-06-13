@@ -2,10 +2,6 @@ import { useState, useEffect } from "react";
 
 import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send } from "lucide-react";
 
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
-
 // ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMk4VN0Yp3MeW-LU",
@@ -16,16 +12,41 @@ const firebaseConfig = {
   appId: "1:404911023324:web:83384f9f85bb260e180019",
   measurementId: "G-CJD67NE58W"
 };
-const fbApp = initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
-const googleProvider = new GoogleAuthProvider();
+// Firebase is loaded DYNAMICALLY (not at module-evaluation time).
+// This avoids a known Firebase v10 + Vite production bug where Firebase's
+// internal circular module references cause "Cannot access 'X' before
+// initialization" when bundled synchronously with app code.
+let fb = null;
+let fbLoadingPromise = null;
+function loadFirebase() {
+  if (fbLoadingPromise) return fbLoadingPromise;
+  fbLoadingPromise = Promise.all([
+    import("firebase/app"),
+    import("firebase/auth"),
+    import("firebase/firestore"),
+  ]).then(([appMod, authMod, fsMod]) => {
+    const fbApp = appMod.initializeApp(firebaseConfig);
+    fb = {
+      auth: authMod.getAuth(fbApp),
+      db: fsMod.getFirestore(fbApp),
+      googleProvider: new authMod.GoogleAuthProvider(),
+      doc: fsMod.doc, setDoc: fsMod.setDoc, getDoc: fsMod.getDoc,
+      collection: fsMod.collection, getDocs: fsMod.getDocs,
+      signInWithRedirect: authMod.signInWithRedirect,
+      getRedirectResult: authMod.getRedirectResult,
+      signOut: authMod.signOut,
+      onAuthStateChanged: authMod.onAuthStateChanged,
+    };
+    return fb;
+  });
+  return fbLoadingPromise;
+}
 
 // ─── WARM CINEMA THEME ──────────────────────────────────────────────
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
 // Replace with your Razorpay Key ID from the Razorpay Dashboard
 // Use rzp_test_XXXX while testing, rzp_live_XXXX for production
-const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
+const RAZORPAY_KEY_ID = "rzp_test_REPLACE_WITH_YOUR_KEY_ID";
 
 // Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
 // Once annual app revenue crosses ₹20 lakh, GST registration required
@@ -153,92 +174,100 @@ export default function App() {
 
   // ─── FIREBASE AUTH LISTENER ───
   useEffect(()=>{
-    // Handle redirect result when user returns from Google sign-in
-    getRedirectResult(auth).then(async (result)=>{
-      if(result && result.user){
-        const user = result.user;
-        setLoggedIn(true);
-        setUserEmail(user.email);
-        setUserName(user.displayName||"");
-        const userRef = doc(db,"users",user.uid);
-        const snap = await getDoc(userRef);
-        const seen = snap.exists() && snap.data().hasSeenOnboard;
-        await setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
-        if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
-        else { setHasSeenOnboard(true); setScreen("home"); }
-      }
-    }).catch(e=>console.error(e));
-
-    // Load Razorpay checkout.js script
-    const rzpScript = document.createElement("script");
-    rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
-    rzpScript.async = true;
-    document.body.appendChild(rzpScript);
-
-    // Load events from Firestore (app reads dynamic content from here)
-    const loadEvents = async () => {
-      try {
-        const snap = await getDocs(collection(db,"events"));
-        if(snap.size > 0){
-          const loaded = [];
-          for(const evDoc of snap.docs){
-            const evData = evDoc.data();
-            if(!evData.title) continue; // skip incomplete docs
-            const scenSnap = await getDocs(collection(db,"events",evDoc.id,"scenarios"));
-            const scenarios = [];
-            scenSnap.forEach(s => { if(s.data().num) scenarios.push(s.data()); });
-            scenarios.sort((a,b)=>a.num-b.num);
-            if(scenarios.length > 0) loaded.push({...evData, id:evDoc.id, scenarios});
-          }
-          if(loaded.length > 0) setDynamicEvents(loaded);
+    // Load Firebase asynchronously, then wire up auth + data loading.
+    // This async boundary is what prevents the Firebase v10 + Vite
+    // "Cannot access before initialization" bug — Firebase's module
+    // graph is fully resolved before any of its exports are used.
+    loadFirebase().then((fb) => {
+      if (cancelled) return;
+      // Handle redirect result when user returns from Google sign-in
+      fb.getRedirectResult(fb.auth).then(async (result)=>{
+        if(result && result.user){
+          const user = result.user;
+          setLoggedIn(true);
+          setUserEmail(user.email);
+          setUserName(user.displayName||"");
+          const userRef = fb.doc(fb.db,"users",user.uid);
+          const snap = await fb.getDoc(userRef);
+          const seen = snap.exists() && snap.data().hasSeenOnboard;
+          await fb.setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
+          if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
+          else { setHasSeenOnboard(true); setScreen("home"); }
         }
-      } catch(e){ console.error("Firestore events load failed, using built-in content",e); }
-      setEventsLoading(false);
-    };
-    loadEvents();
+      }).catch(e=>console.error(e));
 
-    // Load What's New events (sorted by createdAt desc)
-    const loadNew = async () => {
-      try {
-        const snap = await getDocs(collection(db,"events"));
-        const ne = [];
-        snap.forEach(d => { const data=d.data(); if(data.createdAt) ne.push({...data,id:d.id}); });
-        ne.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
-        setNewEvents(ne);
-      } catch(e) {}
-    };
-    loadNew();
+      // Load Razorpay checkout.js script
+      const rzpScript = document.createElement("script");
+      rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
+      rzpScript.async = true;
+      document.body.appendChild(rzpScript);
 
-    const unsub = onAuthStateChanged(auth, async (user)=>{
-      if(user){
-        setLoggedIn(true);
-        setUserEmail(user.email);
-        setUserName(user.displayName||"");
-        const userRef = doc(db,"users",user.uid);
-        const snap = await getDoc(userRef);
-        if(snap.exists() && snap.data().isPremium) setPremium(true);
-      } else {
-        setLoggedIn(false);
-      }
-      setFirebaseReady(true);
-    });
-    return ()=>unsub();
+      // Load events from Firestore (app reads dynamic content from here)
+      const loadEvents = async () => {
+        try {
+          const snap = await fb.getDocs(fb.collection(fb.db,"events"));
+          if(snap.size > 0){
+            const loaded = [];
+            for(const evDoc of snap.docs){
+              const evData = evDoc.data();
+              if(!evData.title) continue; // skip incomplete docs
+              const scenSnap = await fb.getDocs(fb.collection(fb.db,"events",evDoc.id,"scenarios"));
+              const scenarios = [];
+              scenSnap.forEach(s => { if(s.data().num) scenarios.push(s.data()); });
+              scenarios.sort((a,b)=>a.num-b.num);
+              if(scenarios.length > 0) loaded.push({...evData, id:evDoc.id, scenarios});
+            }
+            if(loaded.length > 0) setDynamicEvents(loaded);
+          }
+        } catch(e){ console.error("Firestore events load failed, using built-in content",e); }
+        setEventsLoading(false);
+      };
+      loadEvents();
+
+      // Load What's New events (sorted by createdAt desc)
+      const loadNew = async () => {
+        try {
+          const snap = await fb.getDocs(fb.collection(fb.db,"events"));
+          const ne = [];
+          snap.forEach(d => { const data=d.data(); if(data.createdAt) ne.push({...data,id:d.id}); });
+          ne.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+          setNewEvents(ne);
+        } catch(e) {}
+      };
+      loadNew();
+
+      unsub = fb.onAuthStateChanged(fb.auth, async (user)=>{
+        if(user){
+          setLoggedIn(true);
+          setUserEmail(user.email);
+          setUserName(user.displayName||"");
+          const userRef = fb.doc(fb.db,"users",user.uid);
+          const snap = await fb.getDoc(userRef);
+          if(snap.exists() && snap.data().isPremium) setPremium(true);
+        } else {
+          setLoggedIn(false);
+        }
+        setFirebaseReady(true);
+      });
+    }).catch(e => console.error("Firebase failed to load:", e));
+
+    return ()=>{ cancelled = true; unsub(); };
   },[]);
 
   // ─── SIGN OUT ───
-  const handleSignOut = async ()=>{ await signOut(auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
+  const handleSignOut = async ()=>{ if(fb) await fb.signOut(fb.auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
 
   const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : ACTIVE_EVENTS;
 
   const initiatePayment = async () => {
-    if(!auth.currentUser){ setPaywall(false); setScreen("login"); return; }
+    if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }
     if(!window.Razorpay){ setPaymentError("Payment system loading. Please wait a moment and try again."); return; }
     setPaymentLoading(true); setPaymentError("");
     try {
       const res = await fetch("/api/create-order",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({plan:selectedPlan, userId:auth.currentUser.uid, userEmail}),
+        body:JSON.stringify({plan:selectedPlan, userId:fb.auth.currentUser.uid, userEmail}),
       });
       if(!res.ok){ const e=await res.json(); throw new Error(e.error||"Order creation failed"); }
       const order = await res.json();
@@ -262,7 +291,7 @@ export default function App() {
                 razorpay_order_id:response.razorpay_order_id,
                 razorpay_payment_id:response.razorpay_payment_id,
                 razorpay_signature:response.razorpay_signature,
-                plan:selectedPlan, userId:auth.currentUser.uid, userEmail,
+                plan:selectedPlan, userId:fb.auth.currentUser.uid, userEmail,
               }),
             });
             const vData = await vRes.json();
@@ -270,11 +299,11 @@ export default function App() {
             const expiry = selectedPlan==="yearly"
               ? new Date(Date.now()+365*24*60*60*1000).toISOString()
               : new Date(Date.now()+30*24*60*60*1000).toISOString();
-            await setDoc(doc(db,"users",auth.currentUser.uid),
+            await fb.setDoc(fb.doc(fb.db,"users",fb.auth.currentUser.uid),
               {isPremium:true, premiumPlan:selectedPlan, premiumExpiry:expiry, premiumSince:new Date().toISOString()},
               {merge:true});
-            await setDoc(doc(db,"payments",response.razorpay_payment_id),{
-              userId:auth.currentUser.uid, email:userEmail, name:userName,
+            await fb.setDoc(fb.doc(fb.db,"payments",response.razorpay_payment_id),{
+              userId:fb.auth.currentUser.uid, email:userEmail, name:userName,
               plan:selectedPlan,
               amount:KAASH_PLANS[selectedPlan].amount,
               currency:"INR",
@@ -345,8 +374,8 @@ export default function App() {
           <button onClick={async ()=>{
             if(slide<2){ setSlide(p=>p+1); return; }
             setScreen("home");
-            if(loggedIn && auth.currentUser){
-              try{ await setDoc(doc(db,"users",auth.currentUser.uid),{hasSeenOnboard:true},{merge:true}); }catch(e){}
+            if(loggedIn && fb && fb.auth.currentUser){
+              try{ await fb.setDoc(fb.doc(fb.db,"users",fb.auth.currentUser.uid),{hasSeenOnboard:true},{merge:true}); }catch(e){}
             }
           }} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:14,fontWeight:700,letterSpacing:1}}>
             {slide<2?"CONTINUE →":"START EXPLORING →"}
@@ -374,7 +403,7 @@ export default function App() {
           <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.gold,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
-          <button onClick={async ()=>{ if(!termsChecked) return; try { localStorage.setItem("kaash_terms","1"); await signInWithRedirect(auth, googleProvider); } catch(e){ console.error(e); } }}
+          <button onClick={async ()=>{ if(!termsChecked) return; try { localStorage.setItem("kaash_terms","1"); const f = fb || await loadFirebase(); await f.signInWithRedirect(f.auth, f.googleProvider); } catch(e){ console.error(e); } }}
             style={{width:"100%",maxWidth:320,padding:"13px 0",background:termsChecked?"#fff":"#5A5247",border:"none",borderRadius:10,color:termsChecked?"#222":"#999",cursor:termsChecked?"pointer":"not-allowed",fontFamily:"sans-serif",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"all 0.2s"}}>
             <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
           </button>
@@ -611,15 +640,15 @@ export default function App() {
   );
 
   const sendSuggestion = async () => {
-    if(!q.trim()||suggestionSent) return;
+    if(!q.trim()||suggestionSent||!fb) return;
     try {
       const id = q.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,50);
-      const ref = doc(db,"suggestions",id);
-      const snap = await getDoc(ref);
+      const ref = fb.doc(fb.db,"suggestions",id);
+      const snap = await fb.getDoc(ref);
       if(snap.exists()) {
-        await setDoc(ref,{count:(snap.data().count||0)+1,lastRequested:new Date().toISOString()},{merge:true});
+        await fb.setDoc(ref,{count:(snap.data().count||0)+1,lastRequested:new Date().toISOString()},{merge:true});
       } else {
-        await setDoc(ref,{query:q.trim(),count:1,createdAt:new Date().toISOString(),lastRequested:new Date().toISOString(),status:"pending"});
+        await fb.setDoc(ref,{query:q.trim(),count:1,createdAt:new Date().toISOString(),lastRequested:new Date().toISOString(),status:"pending"});
       }
       setSuggestionSent(true);
     } catch(e){ console.error(e); }

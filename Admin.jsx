@@ -1,9 +1,4 @@
 import { useState, useEffect } from "react";
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-
 // ─── FIREBASE CONFIG (same as main app) ─────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMk4VN0Yp3MeW-LU",
@@ -13,15 +8,55 @@ const firebaseConfig = {
   messagingSenderId: "404911023324",
   appId: "1:404911023324:web:83384f9f85bb260e180019"
 };
-const fbApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
-const storage = getStorage(fbApp);
-const googleProvider = new GoogleAuthProvider();
+// Firebase is loaded DYNAMICALLY to avoid a Firebase v10 + Vite production
+// bug ("Cannot access 'X' before initialization") caused by circular
+// module references when Firebase is bundled synchronously with app code.
+let fb = null;
+let fbLoadingPromise = null;
+function loadFirebase() {
+  if (fbLoadingPromise) return fbLoadingPromise;
+  fbLoadingPromise = Promise.all([
+    import("firebase/app"),
+    import("firebase/auth"),
+    import("firebase/firestore"),
+    import("firebase/storage"),
+  ]).then(([appMod, authMod, fsMod, stMod]) => {
+    const fbApp = appMod.getApps().length ? appMod.getApps()[0] : appMod.initializeApp(firebaseConfig);
+    fb = {
+      auth: authMod.getAuth(fbApp),
+      db: fsMod.getFirestore(fbApp),
+      storage: stMod.getStorage(fbApp),
+      googleProvider: new authMod.GoogleAuthProvider(),
+      doc: fsMod.doc, setDoc: fsMod.setDoc, getDoc: fsMod.getDoc,
+      collection: fsMod.collection, getDocs: fsMod.getDocs,
+      storageRef: stMod.ref, uploadBytesResumable: stMod.uploadBytesResumable,
+      getDownloadURL: stMod.getDownloadURL, deleteObject: stMod.deleteObject,
+      signInWithRedirect: authMod.signInWithRedirect,
+      getRedirectResult: authMod.getRedirectResult,
+      signOut: authMod.signOut,
+      onAuthStateChanged: authMod.onAuthStateChanged,
+    };
+    return fb;
+  });
+  return fbLoadingPromise;
+}
+
+// Hook: returns the loaded firebase instance, or null until ready.
+// Components should render a loading state while this is null.
+function useFirebase() {
+  const [instance, setInstance] = useState(fb);
+  useEffect(() => {
+    if (fb) { setInstance(fb); return; }
+    let cancelled = false;
+    loadFirebase().then((loaded) => { if (!cancelled) setInstance(loaded); });
+    return () => { cancelled = true; };
+  }, []);
+  return instance;
+}
 
 // ─── ADMIN EMAIL — CHANGE THIS TO YOUR GMAIL ────────────────────────
 // Replace the line below with your actual Gmail address
-const ADMIN_EMAIL = "aman.ruling@gmail.com";
+const ADMIN_EMAIL = "YOUR_GMAIL_HERE@gmail.com";
 
 // ─── COLOURS ────────────────────────────────────────────────────────
 const C = {
@@ -50,20 +85,24 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("dashboard");
 
+  const firebase = useFirebase();
+
   useEffect(() => {
-    getRedirectResult(auth).then(result => {
+    if (!firebase) return;
+    let unsub = () => {};
+    firebase.getRedirectResult(firebase.auth).then(result => {
       if (result?.user) {
         if (result.user.email === ADMIN_EMAIL) {
           setUser(result.user);
           setIsAdmin(true);
         } else {
-          signOut(auth);
+          firebase.signOut(firebase.auth);
           alert("Access denied. This panel is for KAASH admin only.");
         }
       }
     }).catch(console.error);
 
-    const unsub = onAuthStateChanged(auth, u => {
+    unsub = firebase.onAuthStateChanged(firebase.auth, u => {
       if (u && u.email === ADMIN_EMAIL) {
         setUser(u); setIsAdmin(true);
       } else {
@@ -72,7 +111,7 @@ export default function Admin() {
       setLoading(false);
     });
     return () => unsub();
-  }, []);
+  }, [firebase]);
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,color:C.gold,fontSize:18,fontWeight:700,letterSpacing:3}}>
@@ -104,7 +143,7 @@ export default function Admin() {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <span style={{fontSize:12,color:C.textSec}}>{user?.email}</span>
-          <button onClick={()=>signOut(auth)} style={{padding:"6px 14px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSec,cursor:"pointer",fontSize:12}}>Sign Out</button>
+          <button onClick={()=>firebase.signOut(firebase.auth)} style={{padding:"6px 14px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSec,cursor:"pointer",fontSize:12}}>Sign Out</button>
         </div>
       </div>
 
@@ -136,6 +175,7 @@ export default function Admin() {
 
 // ─── LOGIN SCREEN ─────────────────────────────────────────────────────
 function AdminLogin() {
+  const firebase = useFirebase();
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,padding:24}}>
       <div style={{fontSize:32,fontWeight:900,letterSpacing:6,color:C.gold,marginBottom:6}}>KAASH</div>
@@ -143,7 +183,7 @@ function AdminLogin() {
       <div style={{background:C.surface,borderRadius:12,padding:32,width:"100%",maxWidth:380,border:`1px solid ${C.border}`}}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Admin Access Only</div>
         <div style={{fontSize:13,color:C.textSec,lineHeight:1.6,marginBottom:24}}>This panel is restricted to the KAASH admin account. Sign in with the registered admin Gmail.</div>
-        <button onClick={()=>signInWithRedirect(auth, googleProvider)}
+        <button onClick={async ()=>{ const f = firebase || await loadFirebase(); f.signInWithRedirect(f.auth, f.googleProvider); }}
           style={{width:"100%",padding:"13px 0",background:"#fff",border:"none",borderRadius:8,color:"#222",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
           <span style={{fontSize:18,fontWeight:900,color:"#4285F4"}}>G</span> Sign in with Google
         </button>
@@ -155,15 +195,17 @@ function AdminLogin() {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────
 function Dashboard() {
+  const firebase = useFirebase();
   const [stats, setStats] = useState({users:0,premium:0,events:0,videos:0,recentUsers:[]});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!firebase) return;
     const load = async () => {
       try {
         const [usersSnap, paymentsSnap] = await Promise.all([
-          getDocs(collection(db,"users")),
-          getDocs(collection(db,"payments")).catch(()=>({forEach:()=>{},size:0})),
+          firebase.getDocs(firebase.collection(firebase.db,"users")),
+          firebase.getDocs(firebase.collection(firebase.db,"payments")).catch(()=>({forEach:()=>{},size:0})),
         ]);
         let premium = 0, recentUsers = [];
         usersSnap.forEach(d => {
@@ -192,7 +234,7 @@ function Dashboard() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [firebase]);
 
   const StatCard = ({label,value,sub,color}) => (
     <div style={{background:C.card,borderRadius:12,padding:"20px 24px",border:`1px solid ${C.border}`,flex:1,minWidth:160}}>
@@ -295,6 +337,7 @@ function Dashboard() {
 
 // ─── VIDEO UPLOAD ─────────────────────────────────────────────────────
 function UploadVideo() {
+  const firebase = useFirebase();
   const [selectedEvent, setSelectedEvent] = useState("");
   const [scenarioNum, setScenarioNum] = useState(1);
   const [lang, setLang] = useState("EN");
@@ -312,25 +355,26 @@ function UploadVideo() {
   };
 
   const upload = async () => {
+    if (!firebase) { setStatus("❌ Still loading, please wait a moment and try again"); return; }
     if (!selectedEvent || !file) { setStatus("❌ Select an event and a video file first"); return; }
     setUploading(true); setProgress(0);
     try {
       const langSuffix = lang === "HI" ? "_hi" : "_en";
       const fileName = `${selectedEvent}_s${scenarioNum}${langSuffix}.mp4`;
-      const storageRef = ref(storage, `videos/${fileName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const storageRef = firebase.storageRef(firebase.storage, `videos/${fileName}`);
+      const uploadTask = firebase.uploadBytesResumable(storageRef, file);
 
       uploadTask.on("state_changed",
         (snap) => setProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100)),
         (err) => { setStatus(`❌ Upload failed: ${err.message}`); setUploading(false); },
         async () => {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          const url = await firebase.getDownloadURL(uploadTask.snapshot.ref);
           const fieldName = lang === "HI" ? "videoUrl_hi" : "videoUrl_en";
-          await setDoc(doc(db,"events",selectedEvent,"scenarios",`s${scenarioNum}`),
+          await firebase.setDoc(firebase.doc(firebase.db,"events",selectedEvent,"scenarios",`s${scenarioNum}`),
             {[fieldName]:url, num:scenarioNum, updatedAt:new Date().toISOString()},
             {merge:true}
           );
-          await setDoc(doc(db,"events",selectedEvent),
+          await firebase.setDoc(firebase.doc(firebase.db,"events",selectedEvent),
             {hasVideos:true, updatedAt:new Date().toISOString()},
             {merge:true}
           );
@@ -418,18 +462,20 @@ function UploadVideo() {
 
 // ─── CONTENT MANAGER ──────────────────────────────────────────────────
 function ContentManager() {
+  const firebase = useFirebase();
   const [videoStatus, setVideoStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState("");
 
   useEffect(() => {
+    if (!firebase) return;
     const load = async () => {
       const status = {};
       for (const ev of EVENT_LIST) {
         status[ev.id] = {};
         for (let s = 1; s <= 5; s++) {
           try {
-            const snap = await getDoc(doc(db,"events",ev.id,"scenarios",`s${s}`));
+            const snap = await firebase.getDoc(firebase.doc(firebase.db,"events",ev.id,"scenarios",`s${s}`));
             if (snap.exists()) {
               const d = snap.data();
               status[ev.id][s] = { en: !!d.videoUrl_en, hi: !!d.videoUrl_hi, urls: {en:d.videoUrl_en, hi:d.videoUrl_hi} };
@@ -440,16 +486,16 @@ function ContentManager() {
       setVideoStatus(status); setLoading(false);
     };
     load();
-  }, []);
+  }, [firebase]);
 
   const deleteVideo = async (eventId, sNum, lang) => {
     const key = `${eventId}_s${sNum}_${lang}`;
     setDeleting(key);
     try {
       const fileName = `${eventId}_s${sNum}_${lang==="EN"?"_en":"_hi"}.mp4`;
-      try { await deleteObject(ref(storage, `videos/${fileName}`)); } catch(e) {}
+      try { await firebase.deleteObject(firebase.storageRef(firebase.storage, `videos/${fileName}`)); } catch(e) {}
       const fieldName = lang==="EN" ? "videoUrl_en" : "videoUrl_hi";
-      await setDoc(doc(db,"events",eventId,"scenarios",`s${sNum}`), {[fieldName]:null}, {merge:true});
+      await firebase.setDoc(firebase.doc(firebase.db,"events",eventId,"scenarios",`s${sNum}`), {[fieldName]:null}, {merge:true});
       setVideoStatus(prev => ({...prev, [eventId]: {...prev[eventId], [sNum]: {...prev[eventId][sNum], [lang.toLowerCase()]:false}}}));
     } catch(e) { alert("Delete failed: " + e.message); }
     setDeleting("");
@@ -498,18 +544,20 @@ function ContentManager() {
 
 // ─── USERS LIST ───────────────────────────────────────────────────────
 function UsersList() {
+  const firebase = useFirebase();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    getDocs(collection(db,"users")).then(snap => {
+    if (!firebase) return;
+    firebase.getDocs(firebase.collection(firebase.db,"users")).then(snap => {
       const list = [];
       snap.forEach(d => list.push({id:d.id,...d.data()}));
       list.sort((a,b) => (b.signedUpAt||b.lastSeen||"").localeCompare(a.signedUpAt||a.lastSeen||""));
       setUsers(list); setLoading(false);
     }).catch(e => { console.error(e); setLoading(false); });
-  }, []);
+  }, [firebase]);
 
   const filtered = users.filter(u =>
     !search || u.email?.toLowerCase().includes(search.toLowerCase()) || u.name?.toLowerCase().includes(search.toLowerCase())
@@ -562,13 +610,15 @@ function UsersList() {
 
 // ─── EXPORT DATA ──────────────────────────────────────────────────────
 function ExportData() {
+  const firebase = useFirebase();
   const [exporting, setExporting] = useState(false);
   const [status, setStatus] = useState("");
 
   const exportCSV = async () => {
+    if (!firebase) { setStatus("❌ Still loading, please wait a moment and try again"); return; }
     setExporting(true); setStatus("Fetching data...");
     try {
-      const snap = await getDocs(collection(db,"users"));
+      const snap = await firebase.getDocs(firebase.collection(firebase.db,"users"));
       const rows = [["User ID","Name","Email","Signed Up","Last Seen","Premium","Watch Count"]];
       snap.forEach(d => {
         const u = d.data();
@@ -617,6 +667,7 @@ function ExportData() {
 
 // ─── CREATE NEW EVENT ─────────────────────────────────────────────────
 function CreateEvent() {
+  const firebase = useFirebase();
   const ERAS = ["ANCIENT","MEDIEVAL","MODERN","CONTEMPORARY"];
   const CATS = ["wars","india","science","ancient","culture","economics"];
   const GRADS = [
@@ -642,6 +693,7 @@ function CreateEvent() {
   const generateId = (title) => title.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,30);
 
   const save = async () => {
+    if(!firebase) { setStatus("❌ Still loading, please wait a moment and try again"); return; }
     if(!form.title||!form.year||!form.region||!form.desc) {
       setStatus("❌ Title, year, region and description are required"); return;
     }
@@ -655,7 +707,7 @@ function CreateEvent() {
         desc:form.desc, tags:form.tags.split(",").map(t=>t.trim()).filter(Boolean),
         createdAt:new Date().toISOString()
       };
-      await setDoc(doc(db,"events",id), eventData);
+      await firebase.setDoc(firebase.doc(firebase.db,"events",id), eventData);
       setStatus(`✅ Event "${form.title}" created with ID: ${id}\n\nNow go to "Edit Scenario" tab to add scenario details, then "Upload Video" to add videos.`);
       setForm({title:"",short:"",year:"",era:"MODERN",region:"",cat:"wars",emoji:"📜",desc:"",tags:"",grad:GRADS[0].val});
     } catch(e) { setStatus(`❌ Failed: ${e.message}`); }
@@ -746,6 +798,7 @@ function CreateEvent() {
 
 // ─── EDIT SCENARIO DETAILS ────────────────────────────────────────────
 function EditScenario() {
+  const firebase = useFirebase();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState("");
   const [scenarioNum, setScenarioNum] = useState(1);
@@ -756,9 +809,10 @@ function EditScenario() {
 
   // Load all events from Firestore (both hardcoded and new ones)
   useEffect(()=>{
+    if (!firebase) return;
     const load = async () => {
       try {
-        const snap = await getDocs(collection(db,"events"));
+        const snap = await firebase.getDocs(firebase.collection(firebase.db,"events"));
         const list = snap.docs.map(d=>({id:d.id,...d.data()}));
         // Merge with hardcoded list (hardcoded ones may not be in Firestore yet)
         const ids = new Set(list.map(e=>e.id));
@@ -768,13 +822,13 @@ function EditScenario() {
       } catch(e){ setEvents(EVENT_LIST); }
     };
     load();
-  },[]);
+  },[firebase]);
 
   // Load existing scenario data when event/num changes
   useEffect(()=>{
-    if(!selectedEvent) return;
+    if(!selectedEvent || !firebase) return;
     setLoading(true);
-    getDoc(doc(db,"events",selectedEvent,"scenarios",`s${scenarioNum}`)).then(snap=>{
+    firebase.getDoc(firebase.doc(firebase.db,"events",selectedEvent,"scenarios",`s${scenarioNum}`)).then(snap=>{
       if(snap.exists()){
         const d=snap.data();
         setForm({
@@ -786,15 +840,16 @@ function EditScenario() {
       }
       setLoading(false);
     }).catch(()=>setLoading(false));
-  },[selectedEvent,scenarioNum]);
+  },[selectedEvent,scenarioNum,firebase]);
 
   const setR = (i,v) => setForm(p=>({...p,ripples:p.ripples.map((r,idx)=>idx===i?v:r)}));
 
   const save = async () => {
+    if(!firebase) { setStatus("❌ Still loading, please wait a moment and try again"); return; }
     if(!selectedEvent||!form.title||!form.tagline) { setStatus("❌ Select event, and fill in title and tagline"); return; }
     setSaving(true); setStatus("");
     try {
-      await setDoc(doc(db,"events",selectedEvent,"scenarios",`s${scenarioNum}`),{
+      await firebase.setDoc(firebase.doc(firebase.db,"events",selectedEvent,"scenarios",`s${scenarioNum}`),{
         num:scenarioNum, title:form.title, tagline:form.tagline,
         narrative:form.narrative, ripples:form.ripples.filter(r=>r.trim()),
         updatedAt:new Date().toISOString()
@@ -866,22 +921,25 @@ function EditScenario() {
 
 // ─── SUGGESTIONS (from users) ─────────────────────────────────────────
 function Suggestions() {
+  const firebase = useFirebase();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState("");
 
   useEffect(()=>{
-    getDocs(collection(db,"suggestions")).then(snap=>{
+    if (!firebase) return;
+    firebase.getDocs(firebase.collection(firebase.db,"suggestions")).then(snap=>{
       const list = [];
       snap.forEach(d => list.push({id:d.id,...d.data()}));
       list.sort((a,b)=>(b.count||0)-(a.count||0));
       setSuggestions(list); setLoading(false);
     }).catch(e=>{ console.error(e); setLoading(false); });
-  },[]);
+  },[firebase]);
 
   const setStatus = async (id, status) => {
+    if (!firebase) return;
     setUpdating(id);
-    await setDoc(doc(db,"suggestions",id),{status},{merge:true});
+    await firebase.setDoc(firebase.doc(firebase.db,"suggestions",id),{status},{merge:true});
     setSuggestions(prev=>prev.map(s=>s.id===id?{...s,status}:s));
     setUpdating("");
   };
@@ -964,12 +1022,14 @@ function Suggestions() {
 
 // ─── PAYMENTS TAB ─────────────────────────────────────────────────────
 function PaymentsTab() {
+  const firebase = useFirebase();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({base:0,gst:0,total:0,monthly:0,yearly:0});
 
   useEffect(()=>{
-    getDocs(collection(db,"payments")).then(snap=>{
+    if (!firebase) return;
+    firebase.getDocs(firebase.collection(firebase.db,"payments")).then(snap=>{
       const list = [];
       let base=0,monthly=0,yearly=0;
       snap.forEach(d=>{
@@ -984,7 +1044,7 @@ function PaymentsTab() {
       setTotals({base,monthly,yearly});
       setLoading(false);
     }).catch(e=>{ console.error(e); setLoading(false); });
-  },[]);
+  },[firebase]);
 
   const exportPaymentsCSV = () => {
     const rows=[["Payment ID","User Email","Plan","Base (₹)","GST (₹)","Total (₹)","Paid At","Order ID"]];

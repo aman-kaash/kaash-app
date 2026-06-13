@@ -1,13 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// ADMIN PANEL — separate single-entry build.
-// Output goes into dist/ alongside the main app, with its own
-// hashed asset filenames (no collision with the main app's assets).
+// ADMIN PANEL build — same esnext target as main, see vite.config.js for why.
 export default defineConfig({
   plugins: [react()],
   publicDir: false,
   build: {
+    target: 'esnext',
     outDir: 'dist',
     emptyOutDir: false,
     rollupOptions: {
@@ -18,5 +17,8 @@ export default defineConfig({
         assetFileNames: 'assets/admin-[hash][extname]'
       }
     }
+  },
+  optimizeDeps: {
+    esbuildOptions: { target: 'esnext' }
   }
 })

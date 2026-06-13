@@ -4,13 +4,13 @@ import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, Ch
 
 // ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMk4VN0Yp3MeW-LU",
+  apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMW4VN0Yp3MeW-LU",
   authDomain: "kaash-app.firebaseapp.com",
   projectId: "kaash-app",
   storageBucket: "kaash-app.firebasestorage.app",
   messagingSenderId: "404911023324",
-  appId: "1:404911023324:web:83384f9f85bb260e180019",
-  measurementId: "G-CJD67NE58W"
+  appId: "1:404911023324:web:83304f9f85bb260e180019",
+  measurementId: "G-CJDG7NE58W"
 };
 // Firebase is loaded DYNAMICALLY (not at module-evaluation time).
 // This avoids a known Firebase v10 + Vite production bug where Firebase's

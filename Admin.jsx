@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 // ─── FIREBASE CONFIG (same as main app) ─────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMk4VN0Yp3MeW-LU",
+  apiKey: "AIzaSyBv0ZkzCXD1laS_ijbtMW4VN0Yp3MeW-LU",
   authDomain: "kaash-app.firebaseapp.com",
   projectId: "kaash-app",
   storageBucket: "kaash-app.firebasestorage.app",
   messagingSenderId: "404911023324",
-  appId: "1:404911023324:web:83384f9f85bb260e180019"
+  appId: "1:404911023324:web:83304f9f85bb260e180019"
 };
 // Firebase is loaded DYNAMICALLY to avoid a Firebase v10 + Vite production
 // bug ("Cannot access 'X' before initialization") caused by circular

@@ -56,7 +56,7 @@ function useFirebase() {
 
 // ─── ADMIN EMAIL — CHANGE THIS TO YOUR GMAIL ────────────────────────
 // Replace the line below with your actual Gmail address
-const ADMIN_EMAIL = "YOUR_GMAIL_HERE@gmail.com";
+const ADMIN_EMAIL = "aman.ruling@gmail.com";
 
 // ─── COLOURS ────────────────────────────────────────────────────────
 const C = {

@@ -33,6 +33,7 @@ function loadFirebase() {
       getDownloadURL: stMod.getDownloadURL, deleteObject: stMod.deleteObject,
       signInWithRedirect: authMod.signInWithRedirect,
       getRedirectResult: authMod.getRedirectResult,
+      signInWithPopup: authMod.signInWithPopup,
       signOut: authMod.signOut,
       onAuthStateChanged: authMod.onAuthStateChanged,
     };
@@ -90,18 +91,6 @@ export default function Admin() {
   useEffect(() => {
     if (!firebase) return;
     let unsub = () => {};
-    firebase.getRedirectResult(firebase.auth).then(result => {
-      if (result?.user) {
-        if (result.user.email === ADMIN_EMAIL) {
-          setUser(result.user);
-          setIsAdmin(true);
-        } else {
-          firebase.signOut(firebase.auth);
-          alert("Access denied. This panel is for KAASH admin only.");
-        }
-      }
-    }).catch(console.error);
-
     unsub = firebase.onAuthStateChanged(firebase.auth, u => {
       if (u && u.email === ADMIN_EMAIL) {
         setUser(u); setIsAdmin(true);
@@ -183,7 +172,16 @@ function AdminLogin() {
       <div style={{background:C.surface,borderRadius:12,padding:32,width:"100%",maxWidth:380,border:`1px solid ${C.border}`}}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Admin Access Only</div>
         <div style={{fontSize:13,color:C.textSec,lineHeight:1.6,marginBottom:24}}>This panel is restricted to the KAASH admin account. Sign in with the registered admin Gmail.</div>
-        <button onClick={async ()=>{ const f = firebase || await loadFirebase(); f.signInWithRedirect(f.auth, f.googleProvider); }}
+        <button onClick={async ()=>{
+            const f = firebase || await loadFirebase();
+            try {
+              const result = await f.signInWithPopup(f.auth, f.googleProvider);
+              if (result.user.email !== ADMIN_EMAIL) {
+                await f.signOut(f.auth);
+                alert("Access denied. This panel is for KAASH admin only.");
+              }
+            } catch(e) { console.error("Sign-in failed:", e); }
+          }}
           style={{width:"100%",padding:"13px 0",background:"#fff",border:"none",borderRadius:8,color:"#222",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
           <span style={{fontSize:18,fontWeight:900,color:"#4285F4"}}>G</span> Sign in with Google
         </button>

@@ -34,6 +34,7 @@ function loadFirebase() {
       collection: fsMod.collection, getDocs: fsMod.getDocs,
       signInWithRedirect: authMod.signInWithRedirect,
       getRedirectResult: authMod.getRedirectResult,
+      signInWithPopup: authMod.signInWithPopup,
       signOut: authMod.signOut,
       onAuthStateChanged: authMod.onAuthStateChanged,
     };
@@ -180,22 +181,6 @@ export default function App() {
     // graph is fully resolved before any of its exports are used.
     loadFirebase().then((fb) => {
       if (cancelled) return;
-      // Handle redirect result when user returns from Google sign-in
-      fb.getRedirectResult(fb.auth).then(async (result)=>{
-        if(result && result.user){
-          const user = result.user;
-          setLoggedIn(true);
-          setUserEmail(user.email);
-          setUserName(user.displayName||"");
-          const userRef = fb.doc(fb.db,"users",user.uid);
-          const snap = await fb.getDoc(userRef);
-          const seen = snap.exists() && snap.data().hasSeenOnboard;
-          await fb.setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
-          if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
-          else { setHasSeenOnboard(true); setScreen("home"); }
-        }
-      }).catch(e=>console.error(e));
-
       // Load Razorpay checkout.js script
       const rzpScript = document.createElement("script");
       rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -403,7 +388,25 @@ export default function App() {
           <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.gold,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
-          <button onClick={async ()=>{ if(!termsChecked) return; try { localStorage.setItem("kaash_terms","1"); const f = fb || await loadFirebase(); await f.signInWithRedirect(f.auth, f.googleProvider); } catch(e){ console.error(e); } }}
+          <button onClick={async ()=>{
+              if(!termsChecked) return;
+              try {
+                localStorage.setItem("kaash_terms","1");
+                const f = fb || await loadFirebase();
+                const result = await f.signInWithPopup(f.auth, f.googleProvider);
+                const user = result.user;
+                setLoggedIn(true);
+                setUserEmail(user.email);
+                setUserName(user.displayName||"");
+                const userRef = f.doc(f.db,"users",user.uid);
+                const snap = await f.getDoc(userRef);
+                const seen = snap.exists() && snap.data().hasSeenOnboard;
+                await f.setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
+                if(snap.exists() && snap.data().isPremium) setPremium(true);
+                if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
+                else { setHasSeenOnboard(true); setScreen("home"); }
+              } catch(e){ console.error("Sign-in failed:", e); }
+            }}
             style={{width:"100%",maxWidth:320,padding:"13px 0",background:termsChecked?"#fff":"#5A5247",border:"none",borderRadius:10,color:termsChecked?"#222":"#999",cursor:termsChecked?"pointer":"not-allowed",fontFamily:"sans-serif",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"all 0.2s"}}>
             <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
           </button>

@@ -25,7 +25,7 @@ const googleProvider = new GoogleAuthProvider();
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
 // Replace with your Razorpay Key ID from the Razorpay Dashboard
 // Use rzp_test_XXXX while testing, rzp_live_XXXX for production
-const RAZORPAY_KEY_ID = "rzp_test_REPLACE_WITH_YOUR_KEY_ID";
+const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
 
 // Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
 // Once annual app revenue crosses ₹20 lakh, GST registration required

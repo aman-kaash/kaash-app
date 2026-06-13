@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, query, orderBy } from "firebase/firestore";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
 // ─── FIREBASE CONFIG (same as main app) ─────────────────────────────

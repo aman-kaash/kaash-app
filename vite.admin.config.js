@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// ADMIN PANEL build — same esnext target as main, see vite.config.js for why.
 export default defineConfig({
   plugins: [react()],
   publicDir: false,
   build: {
-    target: 'esnext',
     outDir: 'dist',
     emptyOutDir: false,
     rollupOptions: {
@@ -17,8 +15,5 @@ export default defineConfig({
         assetFileNames: 'assets/admin-[hash][extname]'
       }
     }
-  },
-  optimizeDeps: {
-    esbuildOptions: { target: 'esnext' }
   }
 })

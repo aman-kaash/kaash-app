@@ -257,7 +257,7 @@ export default function App() {
   // ─── SIGN OUT ───
   const handleSignOut = async ()=>{ if(fb) await fb.signOut(fb.auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
 
-  const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : ACTIVE_EVENTS;
+  const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : EVENTS;
 
   const initiatePayment = async () => {
     if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }

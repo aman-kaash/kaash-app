@@ -672,14 +672,14 @@ function CreateEvent() {
   const ERAS = ["ANCIENT","MEDIEVAL","MODERN","CONTEMPORARY"];
   const CATS = ["wars","india","science","ancient","culture","economics"];
   const GRADS = [
-    {name:"Dark Red",val:"linear-gradient(135deg,#7A2A1E,#2A1410)"},
-    {name:"Deep Blue",val:"linear-gradient(135deg,#2E4468,#141E30)"},
-    {name:"Amber Gold",val:"linear-gradient(135deg,#A0651A,#3A2408)"},
-    {name:"Space Blue",val:"linear-gradient(135deg,#3E5A7E,#161E2C)"},
-    {name:"Bronze",val:"linear-gradient(135deg,#8A6E2E,#2E2410)"},
-    {name:"Dark Orange",val:"linear-gradient(135deg,#9E5E28,#2E1A0A)"},
-    {name:"Forest",val:"linear-gradient(135deg,#2E5A2E,#0A1F0A)"},
-    {name:"Purple",val:"linear-gradient(135deg,#5A2E7A,#1A0A2E)"},
+    {name:"Wine",val:"linear-gradient(135deg,#3D2A38,#12141C)"},
+    {name:"Deep Blue",val:"linear-gradient(135deg,#28365A,#12141C)"},
+    {name:"Teal",val:"linear-gradient(135deg,#1F3D3A,#12141C)"},
+    {name:"Indigo",val:"linear-gradient(135deg,#2C3D5E,#12141C)"},
+    {name:"Bronze",val:"linear-gradient(135deg,#3E3525,#12141C)"},
+    {name:"Rust",val:"linear-gradient(135deg,#3A2A22,#12141C)"},
+    {name:"Forest",val:"linear-gradient(135deg,#1E3D2A,#12141C)"},
+    {name:"Purple",val:"linear-gradient(135deg,#3A2C52,#12141C)"},
   ];
 
   const [form, setForm] = useState({

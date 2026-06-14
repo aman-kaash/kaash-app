@@ -68,7 +68,7 @@ const C = {
 const USER = { name:"Aman", streak:7, xp:2450, level:"Senior Historian", watched:23, total:500, badges:["Ancient Scholar","WW2 Expert","India Historian"] };
 
 const EVENTS = [
-  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#7A2A1E,#2A1410)",
+  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#3D2A38,#12141C)",
     desc:"On June 28, 1914, a single bullet in Sarajevo triggered a chain reaction killing 20 million and reshaping every nation on Earth.",
     tags:["WW1","Europe","Nationalism"],
     scenarios:[
@@ -79,7 +79,7 @@ const EVENTS = [
       {num:5,title:"Princip Hits the Wrong Target",tagline:"What if he killed a minor official?",ripples:["Austria-Hungary reforms — survives as federal state into 1930s","Delayed but smaller world war in 1924 — 3 million not 20 million dead","No Versailles humiliation — Hitler never rises to power","Russian monarchy survives longer, gentle reforms avoid revolution","The 20th century is brutal but not apocalyptic"],narrative:"The Sarajevo plot goes slightly wrong. Princip fires — but shoots Count von Berchtold, Austria's Foreign Minister, instead of the Archduke. Franz Ferdinand survives.\n\nAustria protests, negotiates, gets concessions from Serbia. No war. Europe avoids 1914's catastrophe.\n\nBut the underlying tensions find release in a different crisis a decade later. A smaller delayed war comes in 1924 — 3 million dead instead of 20 million. Terrible, but survivable."},
     ]
   },
-  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#2E4468,#141E30)",
+  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#28365A,#12141C)",
     desc:"The deadliest conflict in human history — 70-85 million dead, the Holocaust, the atomic bomb, and a world order remade from its ashes.",
     tags:["Holocaust","Nuclear Age","Fascism"],
     scenarios:[
@@ -90,7 +90,7 @@ const EVENTS = [
       {num:5,title:"Atomic Bomb Never Used",tagline:"What if Truman chose invasion?",ripples:["1 million+ Allied deaths in Japanese invasion","Japan physically destroyed through conventional war — decades slower recovery","Nuclear taboo never exists — Cold War catastrophically more dangerous","Anti-nuclear movement never exists — no Hiroshima imagery to point to","Korean War: South Korea almost certainly falls to the North"],narrative:"Summer 1945. Truman chooses Operation Downfall over the atomic bomb. The ground invasion of Japan begins November 1945. One million Allied casualties. Five to ten million Japanese killed.\n\nThe bomb exists — but having never been used, its psychological weight is different. When the Soviets test their device in 1950, there is no 'you already crossed that line' dynamic.\n\nThe Cold War nearly becomes hot — three times. The horror of Hiroshima that restrained real leaders does not exist in this world."},
     ]
   },
-  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#A0651A,#3A2408)",
+  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#1F3D3A,#12141C)",
     desc:"August 1947: British India divided into two nations overnight. Up to 2 million killed, 15 million displaced, and a nuclear rivalry born that shapes South Asia today.",
     tags:["India","Pakistan","Independence"],
     scenarios:[
@@ -101,7 +101,7 @@ const EVENTS = [
       {num:5,title:"Slower Partition — No Violence",tagline:"What if Britain stayed until 1960?",ripples:["Partition violence never happens — 2 million lives saved overnight","South Asian confederation with open borders established by 1960","Kashmir integrated through negotiation — no Line of Control","Neither India nor Pakistan develops nuclear weapons until 1990s","The subcontinent's most talented people never flee refugee crisis"],narrative:"A slow, negotiated transfer — province by province over 13 years — begins in 1947 but completes in 1960. The violence of 1947 never happens. Communities migrate gradually, retaining property and dignity.\n\nBy 1960, a confederation emerges: India and Pakistan as separate nations but within a South Asian economic community — like the EU, 30 years early.\n\nThe resources spent on three wars and two nuclear programs are channelled into roads, hospitals, and schools for one billion people."},
     ]
   },
-  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#3E5A7E,#161E2C)",
+  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#2C3D5E,#12141C)",
     desc:"July 20, 1969. Humanity's greatest achievement. But what if the most audacious mission in history had gone differently?",
     tags:["Space Race","Cold War","NASA"],
     scenarios:[
@@ -112,7 +112,7 @@ const EVENTS = [
       {num:5,title:"China Lands First in 1969",tagline:"What if there were three entrants?",ripples:["Three-way space race drives unprecedented global investment","China becomes space and tech superpower 50 years ahead of schedule","Asian century begins in 1975 not 2000","Cold War becomes three-polar — fundamentally different geopolitics","Space becomes Asia-Pacific dominated"],narrative:"China, which in reality had its own quietly cancelled lunar program, succeeds in this timeline. July 25, 1969: five days after Armstrong, a Chinese taikonaut plants the five-star red flag on the lunar surface.\n\nThree flags on the Moon within a week. A three-way space race begins — and with it, a three-polar Cold War.\n\nChina becomes a technology superpower in the 1970s instead of the 2000s. The Asian century begins 25 years early."},
     ]
   },
-  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#8A6E2E,#2E2410)",
+  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3E3525,#12141C)",
     desc:"Alexander the Great died at 32 in Babylon — possibly the most consequential early death in history. What if he had lived another 40 years?",
     tags:["Ancient","Alexander","Greece"],
     scenarios:[
@@ -123,7 +123,7 @@ const EVENTS = [
       {num:5,title:"Alexander Reaches the Americas",tagline:"What if he sailed west?",ripples:["Old World meets New World 1800 years before Columbus","Native American civilizations encounter Greek science early","Disease still spreads but from much smaller initial contact","Two parallel civilizations develop in contact from 280 BC","The world of 2024 has 1800 more years of cross-cultural exchange"],narrative:"310 BC. Alexander, obsessed with what lies beyond the Pillars of Hercules, commissions a massive fleet. Sailing west from Carthage, after months at sea, his ships reach the Caribbean.\n\nThe encounter is different from Columbus's: Alexander is curious, not acquisitive. He establishes a trading colony. Greek mathematics spreads; Mesoamerican astronomy flows east.\n\nTwo civilizations in contact from 280 BC have 1,800 more years of exchange."},
     ]
   },
-  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#9E5E28,#2E1A0A)",
+  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#3A2A22,#12141C)",
     desc:"October 1962: the closest humanity has ever come to nuclear war. 13 days when a single wrong decision could have ended civilization.",
     tags:["Cold War","Nuclear","Kennedy"],
     scenarios:[
@@ -672,7 +672,7 @@ export default function App() {
     return (
       <div style={{flex:1,overflowY:"auto",paddingBottom:20}}>
         <div style={{background:featured.grad,minHeight:210,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 22px 22px",position:"relative"}}>
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(26,22,19,0.4),transparent,${C.bg})`}}/>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(10,14,20,0.4),transparent,${C.bg})`}}/>
           <div style={{position:"relative"}}>
             <div style={{fontSize:9,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>★ TIMELINE OF THE WEEK</div>
             <div style={{fontSize:22,fontWeight:900,lineHeight:1.2,marginBottom:4}}>{featured.title}</div>

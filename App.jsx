@@ -363,7 +363,7 @@ export default function App() {
     return <UpNextScreen
       scenario={upNextScenario} event={upNextEvent} countdown={upNextCount}
       setCountdown={setUpNextCount}
-      onPlay={()=>{ setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
+      onPlay={()=>{ if(watchCount>=2 && !loggedIn){ setPendingWatch({sc:upNextScenario, ev:upNextEvent}); setScreen("login"); return; } setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
       onSkip={()=>setScreen("home")}
     />;
   }

@@ -61,12 +61,12 @@ const ADMIN_EMAIL = "aman.ruling@gmail.com";
 
 // ─── COLOURS ────────────────────────────────────────────────────────
 const C = {
-  bg:"#0A0A0A", surface:"#111", card:"#181818", border:"#252525",
-  gold:"#E8B84B", goldBg:"rgba(232,184,75,0.1)",
+  bg:"#0A0E14", surface:"#11161F", card:"#161D29", border:"#232B38",
+  accent:"#4A7FE8", accentBg:"rgba(74,127,232,0.12)",
   green:"#4CAF50", greenBg:"rgba(76,175,80,0.1)",
   red:"#E53935", redBg:"rgba(229,57,53,0.1)",
   blue:"#2196F3", blueBg:"rgba(33,150,243,0.1)",
-  text:"#F0EBE0", textSec:"#888", textMuted:"#555",
+  text:"#F5F7FA", textSec:"#9AA5B8", textMuted:"#5C6A80",
 };
 
 // Hardcoded events list (matches main app)
@@ -103,7 +103,7 @@ export default function Admin() {
   }, [firebase]);
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,color:C.gold,fontSize:18,fontWeight:700,letterSpacing:3}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,color:C.accent,fontSize:18,fontWeight:700,letterSpacing:3}}>
       KAASH ADMIN
     </div>
   );
@@ -127,7 +127,8 @@ export default function Admin() {
       {/* Top Bar */}
       <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:18,fontWeight:900,letterSpacing:4,color:C.gold}}>KAASH</span>
+          <KaashMark size={24}/>
+          <span style={{fontSize:18,fontWeight:900,letterSpacing:4,color:C.text}}>KAASH</span>
           <span style={{fontSize:11,color:C.textSec,background:C.card,padding:"3px 10px",borderRadius:12,letterSpacing:1}}>ADMIN</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -140,7 +141,7 @@ export default function Admin() {
       <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"0 24px",display:"flex",gap:4,overflowX:"auto"}}>
         {tabs.map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{padding:"12px 16px",background:"transparent",border:"none",borderBottom:`2px solid ${tab===t.id?C.gold:"transparent"}`,color:tab===t.id?C.gold:C.textSec,cursor:"pointer",fontSize:13,fontWeight:tab===t.id?700:400,whiteSpace:"nowrap"}}>
+            style={{padding:"12px 16px",background:"transparent",border:"none",borderBottom:`2px solid ${tab===t.id?C.accent:"transparent"}`,color:tab===t.id?C.accent:C.textSec,cursor:"pointer",fontSize:13,fontWeight:tab===t.id?700:400,whiteSpace:"nowrap"}}>
             {t.label}
           </button>
         ))}
@@ -167,7 +168,8 @@ function AdminLogin() {
   const firebase = useFirebase();
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,padding:24}}>
-      <div style={{fontSize:32,fontWeight:900,letterSpacing:6,color:C.gold,marginBottom:6}}>KAASH</div>
+      <KaashMark size={40}/>
+      <div style={{fontSize:32,fontWeight:900,letterSpacing:6,color:C.text,marginTop:12,marginBottom:6}}>KAASH</div>
       <div style={{fontSize:12,color:C.textSec,letterSpacing:3,marginBottom:48}}>ADMIN PANEL</div>
       <div style={{background:C.surface,borderRadius:12,padding:32,width:"100%",maxWidth:380,border:`1px solid ${C.border}`}}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Admin Access Only</div>
@@ -236,7 +238,7 @@ function Dashboard() {
 
   const StatCard = ({label,value,sub,color}) => (
     <div style={{background:C.card,borderRadius:12,padding:"20px 24px",border:`1px solid ${C.border}`,flex:1,minWidth:160}}>
-      <div style={{fontSize:32,fontWeight:900,color:color||C.gold,fontFamily:"monospace"}}>{loading?"—":value}</div>
+      <div style={{fontSize:32,fontWeight:900,color:color||C.accent,fontFamily:"monospace"}}>{loading?"—":value}</div>
       <div style={{fontSize:13,fontWeight:600,marginTop:4}}>{label}</div>
       {sub&&<div style={{fontSize:11,color:C.textSec,marginTop:2}}>{sub}</div>}
     </div>
@@ -247,9 +249,9 @@ function Dashboard() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:20}}>Dashboard</h2>
       <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:20}}>
         <StatCard label="Total Users" value={stats.users} sub="All time signups" color={C.blue}/>
-        <StatCard label="Premium Subscribers" value={stats.premium} sub="Active paying users" color={C.gold}/>
+        <StatCard label="Premium Subscribers" value={stats.premium} sub="Active paying users" color={C.accent}/>
         <StatCard label="This FY Revenue" value={`₹${(stats.fyRevenue||0).toLocaleString("en-IN")}`} sub="Current financial year" color={C.green}/>
-        <StatCard label="Last 30 Days" value={`₹${(stats.monthlyRevenue||0).toLocaleString("en-IN")}`} sub="Rolling 30-day revenue" color={C.gold}/>
+        <StatCard label="Last 30 Days" value={`₹${(stats.monthlyRevenue||0).toLocaleString("en-IN")}`} sub="Rolling 30-day revenue" color={C.accent}/>
       </div>
 
       {/* TAX THRESHOLD ALERTS */}
@@ -295,7 +297,7 @@ function Dashboard() {
               <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
                 Current FY app revenue: <strong style={{color:C.text}}>₹{fy.toLocaleString("en-IN")}</strong><br/>
                 Taxable income (6% of revenue, digital receipts): <strong style={{color:C.text}}>₹{taxableIncome.toLocaleString("en-IN")}</strong><br/>
-                Estimated income tax @ 30% slab: <strong style={{color:C.gold}}>₹{estimatedTax.toLocaleString("en-IN")}</strong><br/>
+                Estimated income tax @ 30% slab: <strong style={{color:C.accent}}>₹{estimatedTax.toLocaleString("en-IN")}</strong><br/>
                 {advanceTaxDue
                   ? <span style={{color:"#FF6F00",fontWeight:700}}>⚠️ Advance tax due by March 15. Pay via income tax portal (incometax.gov.in). Use Challan 280, Self-Assessment Tax.</span>
                   : <span>Advance tax due date: <strong>March 15</strong>. Pay the above amount by then via incometax.gov.in → Pay Tax → Challan 280.</span>
@@ -322,7 +324,7 @@ function Dashboard() {
                   <td style={{padding:"12px 20px",fontSize:13}}>{u.name}</td>
                   <td style={{padding:"12px 20px",fontSize:13,color:C.textSec}}>{u.email}</td>
                   <td style={{padding:"12px 20px",fontSize:12,color:C.textSec}}>{u.joined?.slice(0,10)||"—"}</td>
-                  <td style={{padding:"12px 20px"}}><span style={{fontSize:11,padding:"3px 10px",borderRadius:12,background:u.premium?C.goldBg:C.surface,color:u.premium?C.gold:C.textSec,fontWeight:700}}>{u.premium?"AD-FREE":"FREE"}</span></td>
+                  <td style={{padding:"12px 20px"}}><span style={{fontSize:11,padding:"3px 10px",borderRadius:12,background:u.premium?C.accentBg:C.surface,color:u.premium?C.accent:C.textSec,fontWeight:700}}>{u.premium?"AD-FREE":"FREE"}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -419,7 +421,7 @@ function UploadVideo() {
         <div onDrop={e=>{e.preventDefault();setDragOver(false);handleFile(e.dataTransfer.files[0]);}}
           onDragOver={e=>{e.preventDefault();setDragOver(true);}}
           onDragLeave={()=>setDragOver(false)}
-          style={{border:`2px dashed ${dragOver?C.gold:C.border}`,borderRadius:10,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragOver?C.goldBg:"transparent",transition:"all 0.2s"}}
+          style={{border:`2px dashed ${dragOver?C.accent:C.border}`,borderRadius:10,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragOver?C.accentBg:"transparent",transition:"all 0.2s"}}
           onClick={()=>document.getElementById("vidFile").click()}>
           <input id="vidFile" type="file" accept="video/*" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
           <div style={{fontSize:32,marginBottom:8}}>🎬</div>
@@ -431,21 +433,21 @@ function UploadVideo() {
 
         {uploading && (
           <div style={{marginTop:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:12,color:C.textSec}}>Uploading...</span><span style={{fontSize:12,color:C.gold,fontWeight:700}}>{progress}%</span></div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:12,color:C.textSec}}>Uploading...</span><span style={{fontSize:12,color:C.accent,fontWeight:700}}>{progress}%</span></div>
             <div style={{height:6,background:C.surface,borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${progress}%`,background:C.gold,borderRadius:3,transition:"width 0.3s"}}/>
+              <div style={{height:"100%",width:`${progress}%`,background:C.accent,borderRadius:3,transition:"width 0.3s"}}/>
             </div>
           </div>
         )}
 
         <button onClick={upload} disabled={!selectedEvent||!file||uploading}
-          style={{marginTop:16,width:"100%",padding:"13px 0",background:(!selectedEvent||!file||uploading)?C.surface:C.gold,border:"none",borderRadius:8,color:(!selectedEvent||!file||uploading)?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:(!selectedEvent||!file||uploading)?"not-allowed":"pointer",letterSpacing:1}}>
+          style={{marginTop:16,width:"100%",padding:"13px 0",background:(!selectedEvent||!file||uploading)?C.surface:C.accent,border:"none",borderRadius:8,color:(!selectedEvent||!file||uploading)?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:(!selectedEvent||!file||uploading)?"not-allowed":"pointer",letterSpacing:1}}>
           {uploading?`UPLOADING... ${progress}%`:"⬆ UPLOAD VIDEO"}
         </button>
       </div>
 
-      <div style={{background:C.goldBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:6}}>💡 How this works</div>
+      <div style={{background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 How this works</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           1. Generate video using InVideo AI with the prompt from your content files<br/>
           2. Download the MP4 from InVideo (1080p)<br/>
@@ -592,7 +594,7 @@ function UsersList() {
                   <td style={{padding:"12px 16px",fontSize:12,color:C.textSec}}>{u.signedUpAt?.slice(0,10)||"—"}</td>
                   <td style={{padding:"12px 16px",fontSize:12,color:C.textSec}}>{u.lastSeen?.slice(0,10)||"—"}</td>
                   <td style={{padding:"12px 16px"}}>
-                    <span style={{fontSize:11,padding:"3px 10px",borderRadius:12,background:u.isPremium?C.goldBg:C.surface,color:u.isPremium?C.gold:C.textSec,fontWeight:700}}>
+                    <span style={{fontSize:11,padding:"3px 10px",borderRadius:12,background:u.isPremium?C.accentBg:C.surface,color:u.isPremium?C.accent:C.textSec,fontWeight:700}}>
                       {u.isPremium?"AD-FREE":"FREE"}
                     </span>
                   </td>
@@ -646,14 +648,14 @@ function ExportData() {
           User ID · Name · Email · Signed Up · Last Seen · Premium (Yes/No) · Watch Count
         </div>
         <button onClick={exportCSV} disabled={exporting}
-          style={{width:"100%",padding:"13px 0",background:exporting?C.surface:C.gold,border:"none",borderRadius:8,color:exporting?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:exporting?"not-allowed":"pointer",letterSpacing:1}}>
+          style={{width:"100%",padding:"13px 0",background:exporting?C.surface:C.accent,border:"none",borderRadius:8,color:exporting?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:exporting?"not-allowed":"pointer",letterSpacing:1}}>
           {exporting?"EXPORTING...":"⬇ DOWNLOAD USERS CSV"}
         </button>
         {status && <div style={{marginTop:12,padding:"10px 14px",background:status.startsWith("✅")?C.greenBg:status.startsWith("❌")?C.redBg:C.surface,borderRadius:8,fontSize:13,color:status.startsWith("✅")?C.green:status.startsWith("❌")?C.red:C.text}}>{status}</div>}
       </div>
 
-      <div style={{background:C.goldBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:6}}>💡 Usage tip</div>
+      <div style={{background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 Usage tip</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           Open the CSV in Google Sheets for easy analysis.<br/>
           Filter by Premium column to see paying users.<br/>
@@ -767,7 +769,7 @@ function CreateEvent() {
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {GRADS.map(g=>(
               <div key={g.val} onClick={()=>set("grad",g.val)}
-                style={{width:60,height:36,borderRadius:6,background:g.val,cursor:"pointer",border:`${form.grad===g.val?3:1}px solid ${form.grad===g.val?C.gold:C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                style={{width:60,height:36,borderRadius:6,background:g.val,cursor:"pointer",border:`${form.grad===g.val?3:1}px solid ${form.grad===g.val?C.accent:C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {form.grad===g.val&&<span style={{fontSize:14}}>✓</span>}
               </div>
             ))}
@@ -780,12 +782,12 @@ function CreateEvent() {
         {status&&<div style={{marginBottom:14,padding:"12px 14px",background:status.startsWith("✅")?C.greenBg:status.startsWith("❌")?C.redBg:C.surface,borderRadius:8,fontSize:13,color:status.startsWith("✅")?C.green:status.startsWith("❌")?C.red:C.text,whiteSpace:"pre-line"}}>{status}</div>}
 
         <button onClick={save} disabled={saving}
-          style={{width:"100%",padding:"13px 0",background:saving?C.surface:C.gold,border:"none",borderRadius:8,color:saving?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",letterSpacing:1}}>
+          style={{width:"100%",padding:"13px 0",background:saving?C.surface:C.accent,border:"none",borderRadius:8,color:saving?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",letterSpacing:1}}>
           {saving?"SAVING...":"✚ CREATE EVENT"}
         </button>
 
-        <div style={{marginTop:16,padding:"12px 14px",background:C.goldBg,borderRadius:8,fontSize:12,color:C.textSec,lineHeight:1.7}}>
-          <strong style={{color:C.gold}}>After creating an event:</strong><br/>
+        <div style={{marginTop:16,padding:"12px 14px",background:C.accentBg,borderRadius:8,fontSize:12,color:C.textSec,lineHeight:1.7}}>
+          <strong style={{color:C.accent}}>After creating an event:</strong><br/>
           1. Go to <strong>Edit Scenario</strong> tab → add titles, narratives and ripple effects for all 5 scenarios<br/>
           2. Go to <strong>Upload Video</strong> tab → upload the MP4 videos<br/>
           3. The event and videos appear in the app automatically — no redeployment needed
@@ -908,7 +910,7 @@ function EditScenario() {
             {status&&<div style={{marginBottom:14,padding:"12px 14px",background:status.startsWith("✅")?C.greenBg:C.redBg,borderRadius:8,fontSize:13,color:status.startsWith("✅")?C.green:C.red}}>{status}</div>}
 
             <button onClick={save} disabled={saving}
-              style={{width:"100%",padding:"13px 0",background:saving?C.surface:C.gold,border:"none",borderRadius:8,color:saving?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",letterSpacing:1}}>
+              style={{width:"100%",padding:"13px 0",background:saving?C.surface:C.accent,border:"none",borderRadius:8,color:saving?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",letterSpacing:1}}>
               {saving?"SAVING...":"💾 SAVE SCENARIO"}
             </button>
           </>
@@ -945,7 +947,7 @@ function Suggestions() {
 
   const statusColors = {
     pending:{bg:"rgba(33,150,243,0.1)",color:"#2196F3",label:"Pending"},
-    planned:{bg:"rgba(232,184,75,0.1)",color:"#E8B84B",label:"Planned"},
+    planned:{bg:"rgba(95,212,200,0.14)",color:"#5FD4C8",label:"Planned"},
     done:{bg:"rgba(76,175,80,0.1)",color:"#4CAF50",label:"Done"},
     rejected:{bg:"rgba(229,57,53,0.1)",color:"#E53935",label:"Rejected"},
   };
@@ -982,7 +984,7 @@ function Suggestions() {
                   return (
                     <tr key={i} style={{borderTop:`1px solid ${C.border}`}}>
                       <td style={{padding:"12px 16px",fontSize:14,fontWeight:600}}>{s.query}</td>
-                      <td style={{padding:"12px 16px",fontSize:13,fontWeight:700,color:C.gold}}>{s.count||1}</td>
+                      <td style={{padding:"12px 16px",fontSize:13,fontWeight:700,color:C.accent}}>{s.count||1}</td>
                       <td style={{padding:"12px 16px",fontSize:12,color:C.textSec}}>{s.createdAt?.slice(0,10)||"—"}</td>
                       <td style={{padding:"12px 16px",fontSize:12,color:C.textSec}}>{s.lastRequested?.slice(0,10)||"—"}</td>
                       <td style={{padding:"12px 16px"}}>
@@ -1007,8 +1009,8 @@ function Suggestions() {
         )
       }
 
-      <div style={{marginTop:16,background:C.goldBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:6}}>💡 How this works</div>
+      <div style={{marginTop:16,background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 How this works</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           When a user searches for something not in the app, they see a "Suggest it" button.<br/>
           Their suggestion appears here. The count shows how many users requested the same thing.<br/>
@@ -1068,7 +1070,7 @@ function PaymentsTab() {
           <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>Payments</h2>
           <p style={{color:C.textSec,fontSize:13}}>{loading?"Loading...": `${payments.length} transactions · ₹${totals.base.toFixed(2)} revenue (excl. GST)`}</p>
         </div>
-        {payments.length>0&&<button onClick={exportPaymentsCSV} style={{padding:"8px 14px",background:C.goldBg,border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>⬇ Export CSV</button>}
+        {payments.length>0&&<button onClick={exportPaymentsCSV} style={{padding:"8px 14px",background:C.accentBg,border:`1px solid ${C.accent}`,borderRadius:8,color:C.accent,cursor:"pointer",fontSize:12,fontWeight:700}}>⬇ Export CSV</button>}
       </div>
 
       {/* Revenue Summary */}
@@ -1076,7 +1078,7 @@ function PaymentsTab() {
         <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
           {[
             {label:"Total Revenue",value:`₹${totals.base.toLocaleString("en-IN")}`,sub:"All time app revenue",c:C.green},
-            {label:"Income Tax Est.",value:`₹${Math.round(totals.base*0.06*0.30).toLocaleString("en-IN")}`,sub:"6% taxable × 30% slab",c:C.gold},
+            {label:"Income Tax Est.",value:`₹${Math.round(totals.base*0.06*0.30).toLocaleString("en-IN")}`,sub:"6% taxable × 30% slab",c:C.accent},
             {label:"Net Earnings",value:`₹${Math.round(totals.base*0.982).toLocaleString("en-IN")}`,sub:"After ~1.8% effective tax",c:C.blue},
             {label:"Monthly Subs",value:totals.monthly,sub:"₹49/month each",c:C.textSec},
             {label:"Yearly Subs",value:totals.yearly,sub:"₹499/year each",c:C.textSec},
@@ -1113,7 +1115,7 @@ function PaymentsTab() {
                     <td style={{padding:"11px 14px",fontSize:12,color:C.textSec}}>{p.paidAt?.slice(0,10)||"—"}</td>
                     <td style={{padding:"11px 14px",fontSize:12}}>{p.email||"—"}</td>
                     <td style={{padding:"11px 14px"}}>
-                      <span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:p.plan==="yearly"?C.goldBg:C.surface,color:p.plan==="yearly"?C.gold:C.textSec,fontWeight:700}}>
+                      <span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:p.plan==="yearly"?C.accentBg:C.surface,color:p.plan==="yearly"?C.accent:C.textSec,fontWeight:700}}>
                         {p.plan==="yearly"?"YEARLY":"MONTHLY"}
                       </span>
                     </td>
@@ -1138,5 +1140,19 @@ function PaymentsTab() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── KAASH LOGO MARK ────────────────────────────────────────────────
+// Same mark as the main app, for visual consistency between the user
+// app and admin panel.
+function KaashMark({size=24}){
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" style={{flexShrink:0}}>
+      <rect x="10" y="6" width="4" height="28" rx="1" fill={C.text}/>
+      <path d="M14,20 L34,6" stroke={C.text} strokeWidth="4" strokeLinecap="round" fill="none"/>
+      <path d="M14,20 L30,34" stroke={C.text} strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.25"/>
+      <path d="M17,23 L33,37" stroke={C.accent} strokeWidth="4" strokeLinecap="round" fill="none"/>
+    </svg>
   );
 }

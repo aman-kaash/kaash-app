@@ -58,11 +58,11 @@ const KAASH_PLANS = {
 };
 
 const C = {
-  bg:"#1A1613", surface:"#231E19", card:"#2A241E", elevated:"#352E25", border:"#3D362C",
-  gold:"#E8B84B", goldLight:"#F5D076", goldDark:"#A67C2E", goldBg:"rgba(232,184,75,0.12)",
-  clay:"#D4825C", clayBg:"rgba(212,130,92,0.14)",
-  red:"#C75D4A", green:"#7BA35C", greenBg:"rgba(123,163,92,0.14)",
-  text:"#F5EFE3", textSec:"#B5A992", textMuted:"#6E6456",
+  bg:"#0A0E14", surface:"#11161F", card:"#161D29", elevated:"#1F2937", border:"#232B38",
+  accent:"#4A7FE8", accentLight:"#8AAFF5", accentDark:"#2C5BB8", accentBg:"rgba(74,127,232,0.12)",
+  accent2:"#5FD4C8", accent2Bg:"rgba(95,212,200,0.14)",
+  red:"#E0635A", green:"#6FBF73", greenBg:"rgba(111,191,115,0.14)",
+  text:"#F5F7FA", textSec:"#9AA5B8", textMuted:"#5C6A80",
 };
 
 const USER = { name:"Aman", streak:7, xp:2450, level:"Senior Historian", watched:23, total:500, badges:["Ancient Scholar","WW2 Expert","India Historian"] };
@@ -297,7 +297,7 @@ export default function App() {
         order_id: order.id,
         prefill: {email:userEmail, name:userName},
         notes: {plan:selectedPlan},
-        theme: {color:"#E8B84B"},
+        theme: {color:C.accent},
         modal: {confirm_close:true},
         handler: async (response) => {
           try {
@@ -367,11 +367,11 @@ export default function App() {
       <div style={s}>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 50% 30%, rgba(232,184,75,0.1) 0%, ${C.bg} 70%)`}}>
           <div style={{fontSize:72,marginBottom:24}}>{sl.emoji}</div>
-          <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.gold,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
-          <div style={{fontSize:13,color:C.clay,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
+          <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.accent,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
+          <div style={{fontSize:13,color:C.accent2,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
           <div style={{fontSize:15,color:C.textSec,lineHeight:1.7,textAlign:"center",fontFamily:"sans-serif",maxWidth:320}}>{sl.body}</div>
           <div style={{display:"flex",gap:8,marginTop:40}}>
-            {slides.map((_,i)=><div key={i} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?C.gold:C.elevated,transition:"all 0.3s"}}/>)}
+            {slides.map((_,i)=><div key={i} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?C.accent:C.elevated,transition:"all 0.3s"}}/>)}
           </div>
         </div>
         <div style={{padding:"20px 24px 32px",display:"flex",gap:12}}>
@@ -382,7 +382,7 @@ export default function App() {
             if(loggedIn && fb && fb.auth.currentUser){
               try{ await fb.setDoc(fb.doc(fb.db,"users",fb.auth.currentUser.uid),{hasSeenOnboard:true},{merge:true}); }catch(e){}
             }
-          }} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:14,fontWeight:700,letterSpacing:1}}>
+          }} style={{flex:2,padding:"13px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:14,fontWeight:700,letterSpacing:1}}>
             {slide<2?"CONTINUE →":"START EXPLORING →"}
           </button>
         </div>
@@ -405,7 +405,7 @@ export default function App() {
     return (
       <div style={s}>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(232,184,75,0.1) 0%, ${C.bg} 70%)`}}>
-          <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.gold,marginBottom:6}}>KAASH</div>
+          <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.accent,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
           <button onClick={async ()=>{
@@ -437,14 +437,14 @@ export default function App() {
             <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
           </button>
           <div onClick={()=>setTermsChecked(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",maxWidth:320}}>
-            <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${termsChecked?C.gold:C.textMuted}`,background:termsChecked?C.gold:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>
+            <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${termsChecked?C.accent:C.textMuted}`,background:termsChecked?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>
               {termsChecked&&<CheckCircle size={14} color={C.bg}/>}
             </div>
             <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5}}>
-              I agree to KAASH's <span style={{color:C.gold,textDecoration:"underline"}}>Terms of Service</span> and <span style={{color:C.gold,textDecoration:"underline"}}>Privacy Policy</span>. I understand all content is alternate history fiction.
+              I agree to KAASH's <span style={{color:C.accent,textDecoration:"underline"}}>Terms of Service</span> and <span style={{color:C.accent,textDecoration:"underline"}}>Privacy Policy</span>. I understand all content is alternate history fiction.
             </div>
           </div>
-          {!termsChecked&&<div style={{fontSize:10,color:C.clay,fontFamily:"sans-serif",marginTop:12}}>Please accept the terms to continue</div>}
+          {!termsChecked&&<div style={{fontSize:10,color:C.accent2,fontFamily:"sans-serif",marginTop:12}}>Please accept the terms to continue</div>}
         </div>
         <div style={{padding:"0 28px 28px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
           <ShieldCheck size={13} color={C.green}/>
@@ -464,26 +464,26 @@ export default function App() {
         <div style={{background:`linear-gradient(180deg,rgba(232,184,75,0.15),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
           <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
           <div style={{fontSize:36,marginBottom:8}}>✦</div>
-          <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:C.gold}}>GO AD-FREE</div>
+          <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:C.accent}}>GO AD-FREE</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>One price. No ads. Full access. Cancel anytime.</div>
         </div>
         <div style={{padding:"0 20px 24px"}}>
           <div style={{marginBottom:14}}>
             {Object.entries(KAASH_PLANS).map(([planKey,plan])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
-                style={{background:selectedPlan===planKey?C.goldBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.gold:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.gold,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
+                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.accent,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",marginBottom:2}}>{plan.label}</div>
                     {plan.savingNote&&<div style={{fontSize:11,color:C.green,fontFamily:"sans-serif"}}>{plan.savingNote}</div>}
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===planKey?C.gold:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
+                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===planKey?C.accent:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
                     {plan.perMonth&&planKey==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{plan.perMonth}/month</div>}
                   </div>
                 </div>
-                {selectedPlan===planKey&&<CheckCircle size={14} color={C.gold} style={{position:"absolute",top:16,right:16}}/>}
+                {selectedPlan===planKey&&<CheckCircle size={14} color={C.accent} style={{position:"absolute",top:16,right:16}}/>}
               </div>
             ))}
           </div>
@@ -497,7 +497,7 @@ export default function App() {
           ))}
           {paymentError&&<div style={{background:"rgba(199,93,74,0.14)",border:"1px solid rgba(199,93,74,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
           <button onClick={initiatePayment} disabled={paymentLoading}
-            style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.gold,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
+            style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.accent,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
             {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+KAASH_PLANS[selectedPlan].amount.toFixed(2)+"/"+KAASH_PLANS[selectedPlan].label.toLowerCase()}
           </button>
           <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.5}}>
@@ -524,7 +524,7 @@ export default function App() {
         <div style={{padding:"20px"}}>
           {loggedIn && (
             <div style={{marginBottom:24}}>
-              <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ACCOUNT</div>
+              <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ACCOUNT</div>
               <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,marginBottom:10}}>
                 <div style={{fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>{userName||"Signed in"}</div>
                 <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginTop:2}}>{userEmail}</div>
@@ -534,15 +534,15 @@ export default function App() {
             </div>
           )}
           <div style={{marginBottom:24}}>
-            <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ABOUT</div>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ABOUT</div>
             <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
               KAASH — Alternate History. All content is speculative fiction, created for educational entertainment.
             </div>
           </div>
           <div style={{marginBottom:24}}>
-            <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>YOUR DATA</div>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>YOUR DATA</div>
             <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
-              To request deletion of your account and watch history, email <span style={{color:C.gold}}>support@kaash.app</span>.
+              To request deletion of your account and watch history, email <span style={{color:C.accent}}>support@kaash.app</span>.
             </div>
           </div>
         </div>
@@ -556,41 +556,41 @@ export default function App() {
       <div style={{...s,overflowY:"auto"}} onContextMenu={(e)=>e.preventDefault()}>
         <div style={{width:"100%",aspectRatio:"16/9",background:event.grad,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",minHeight:200,userSelect:"none"}}>
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-            <div style={{width:56,height:56,borderRadius:"50%",background:`${C.gold}ee`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Play size={26} color={C.bg} style={{marginLeft:3}}/></div>
+            <div style={{width:56,height:56,borderRadius:"50%",background:`${C.accent}ee`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Play size={26} color={C.bg} style={{marginLeft:3}}/></div>
             <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary</div>
           </div>
           <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
           <div style={{position:"absolute",bottom:10,left:54,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",pointerEvents:"none"}}>KAASH</div>
           <button onClick={()=>setScreen("detail")} style={{position:"absolute",top:44,left:12,background:"rgba(0,0,0,0.6)",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ArrowLeft size={18} color="#fff"/></button>
-          <div style={{position:"absolute",bottom:10,right:16,fontSize:10,color:C.gold,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>TIMELINE {scenario.num} / 5</div>
+          <div style={{position:"absolute",bottom:10,right:16,fontSize:10,color:C.accent,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>TIMELINE {scenario.num} / 5</div>
           <div style={{position:"absolute",top:44,right:12,display:"flex",background:"rgba(0,0,0,0.6)",borderRadius:8,overflow:"hidden"}}>
             {["EN","HI"].map(L=>(
-              <button key={L} onClick={()=>setLang(L)} style={{padding:"6px 11px",background:lang===L?C.gold:"transparent",border:"none",color:lang===L?C.bg:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{L}</button>
+              <button key={L} onClick={()=>setLang(L)} style={{padding:"6px 11px",background:lang===L?C.accent:"transparent",border:"none",color:lang===L?C.bg:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{L}</button>
             ))}
           </div>
         </div>
         <div style={{padding:"16px 20px 0"}}>
-          <div style={{fontSize:10,color:C.gold,letterSpacing:1,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>{event.short}</div>
+          <div style={{fontSize:10,color:C.accent,letterSpacing:1,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>{event.short}</div>
           <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:4}}>{scenario.title}</div>
           <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:10}}>"{scenario.tagline}"</div>
           <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-            <span style={{fontSize:10,color:C.gold,background:C.goldBg,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif",fontWeight:700}}>🔊 {lang==="EN"?"English":"हिंदी"} Narration</span>
+            <span style={{fontSize:10,color:C.accent,background:C.accentBg,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif",fontWeight:700}}>🔊 {lang==="EN"?"English":"हिंदी"} Narration</span>
             <span style={{fontSize:10,color:C.textSec,background:C.surface,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif"}}>CC {lang==="EN"?"English":"Hindi"} Subtitles</span>
           </div>
           <div style={{height:1,background:C.border,marginBottom:16}}/>
           {[
-            {label:"THE ALTERNATE HISTORY",key:"n",expanded:expandN,toggle:()=>setExpandN(p=>!p),accent:C.gold,content:<div style={{color:C.textSec,fontSize:13,lineHeight:1.8,fontFamily:"sans-serif"}}>{scenario.narrative.split("\n\n").map((p,i)=><p key={i} style={{marginBottom:12}}>{p}</p>)}</div>},
-            {label:"RIPPLE EFFECTS",key:"r",expanded:expandR,toggle:()=>setExpandR(p=>!p),accent:C.clay,content:<div style={{display:"flex",flexDirection:"column",gap:8}}>{scenario.ripples.map((r,i)=><div key={i} style={{background:C.surface,borderRadius:8,padding:"10px 12px",display:"flex",gap:10}}><div style={{minWidth:22,height:22,background:C.clayBg,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.clay,fontFamily:"sans-serif"}}>{i+1}</div><span style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5}}>{r}</span></div>)}</div>},
+            {label:"THE ALTERNATE HISTORY",key:"n",expanded:expandN,toggle:()=>setExpandN(p=>!p),accent:C.accent,content:<div style={{color:C.textSec,fontSize:13,lineHeight:1.8,fontFamily:"sans-serif"}}>{scenario.narrative.split("\n\n").map((p,i)=><p key={i} style={{marginBottom:12}}>{p}</p>)}</div>},
+            {label:"RIPPLE EFFECTS",key:"r",expanded:expandR,toggle:()=>setExpandR(p=>!p),accent:C.accent2,content:<div style={{display:"flex",flexDirection:"column",gap:8}}>{scenario.ripples.map((r,i)=><div key={i} style={{background:C.surface,borderRadius:8,padding:"10px 12px",display:"flex",gap:10}}><div style={{minWidth:22,height:22,background:C.accent2Bg,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.accent2,fontFamily:"sans-serif"}}>{i+1}</div><span style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5}}>{r}</span></div>)}</div>},
           ].map(item=>(
             <div key={item.key} style={{marginBottom:16}}>
               <div onClick={item.toggle} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:item.expanded?12:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:18,background:item.accent,borderRadius:2}}/><span style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>{item.label}</span></div>
-                {item.expanded?<ChevronUp size={18} color={C.gold}/>:<ChevronDown size={18} color={C.gold}/>}
+                <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:18,background:item.accent,borderRadius:2}}/><span style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{item.label}</span></div>
+                {item.expanded?<ChevronUp size={18} color={C.accent}/>:<ChevronDown size={18} color={C.accent}/>}
               </div>
               {item.expanded&&item.content}
             </div>
           ))}
-          <button onClick={()=>{ const sId=event.id+"_"+scenario.num; markW(sId); triggerUpNext(); }} style={{width:"100%",padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>✓ DONE — PLAY NEXT TIMELINE</button>
+          <button onClick={()=>{ const sId=event.id+"_"+scenario.num; markW(sId); triggerUpNext(); }} style={{width:"100%",padding:"13px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>✓ DONE — PLAY NEXT TIMELINE</button>
           <div style={{display:"flex",gap:12,marginBottom:40}}>
             <button style={{flex:1,padding:"11px 0",border:`1px solid ${C.green}`,borderRadius:10,background:C.greenBg,color:C.green,cursor:"pointer",fontFamily:"sans-serif",fontSize:12,fontWeight:700,letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Share2 size={14}/>SHARE ON WHATSAPP</button>
             <button style={{padding:"11px 16px",border:`1px solid ${C.border}`,borderRadius:10,background:"transparent",color:C.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Bookmark size={14}/></button>
@@ -608,27 +608,27 @@ export default function App() {
           <div style={{fontSize:72}}>{event.emoji}</div>
           <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom, rgba(0,0,0,0.3), transparent, ${C.bg})`}}/>
           <button onClick={()=>setScreen("home")} style={{position:"absolute",top:44,left:12,background:"rgba(0,0,0,0.5)",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ArrowLeft size={18} color="#fff"/></button>
-          <div style={{position:"absolute",bottom:16,right:14,background:C.clayBg,border:`1px solid ${C.clay}`,borderRadius:4,padding:"4px 10px"}}><span style={{fontSize:9,fontWeight:700,color:C.clay,letterSpacing:1,fontFamily:"sans-serif"}}>WORLD-CHANGING</span></div>
+          <div style={{position:"absolute",bottom:16,right:14,background:C.accent2Bg,border:`1px solid ${C.accent2}`,borderRadius:4,padding:"4px 10px"}}><span style={{fontSize:9,fontWeight:700,color:C.accent2,letterSpacing:1,fontFamily:"sans-serif"}}>WORLD-CHANGING</span></div>
         </div>
         <div style={{padding:"0 22px 0"}}>
-          <div style={{fontSize:9,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",marginBottom:6,background:C.goldBg,display:"inline-block",padding:"3px 8px",borderRadius:3,marginTop:4}}>{event.era} ERA</div>
+          <div style={{fontSize:9,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",marginBottom:6,background:C.accentBg,display:"inline-block",padding:"3px 8px",borderRadius:3,marginTop:4}}>{event.era} ERA</div>
           <div style={{fontSize:22,fontWeight:900,lineHeight:1.2,marginBottom:8}}>{event.title}</div>
-          <div style={{display:"flex",gap:16,marginBottom:12}}><span style={{fontSize:12,color:C.gold,fontFamily:"sans-serif"}}>📅 {event.year}</span><span style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif"}}>📍 {event.region}</span></div>
+          <div style={{display:"flex",gap:16,marginBottom:12}}><span style={{fontSize:12,color:C.accent,fontFamily:"sans-serif"}}>📅 {event.year}</span><span style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif"}}>📍 {event.region}</span></div>
           <div style={{fontSize:13,color:C.textSec,lineHeight:1.7,fontFamily:"sans-serif",marginBottom:14}}>{event.desc}</div>
-          <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{event.tags.map(t=><span key={t} style={{fontSize:11,color:C.goldLight,background:C.goldBg,borderRadius:3,padding:"3px 8px",fontFamily:"sans-serif"}}>#{t}</span>)}</div>
+          <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{event.tags.map(t=><span key={t} style={{fontSize:11,color:C.accentLight,background:C.accentBg,borderRadius:3,padding:"3px 8px",fontFamily:"sans-serif"}}>#{t}</span>)}</div>
           <div style={{height:1,background:C.border,marginBottom:18}}/>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-            <div style={{width:3,height:20,background:C.gold,borderRadius:2}}/>
-            <div><div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>5 ALTERNATE TIMELINES</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Each one a 5-minute documentary</div></div>
+            <div style={{width:3,height:20,background:C.accent,borderRadius:2}}/>
+            <div><div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>5 ALTERNATE TIMELINES</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Each one a 5-minute documentary</div></div>
           </div>
           {event.scenarios.map((sc,i)=>(
             <div key={i} onClick={()=>attemptWatch(sc,event)} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`}}>
               <div style={{width:90,minHeight:80,background:event.grad,position:"relative",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <span style={{position:"relative",fontSize:28}}>{event.emoji}</span>
-                <div style={{position:"absolute",top:7,left:7,width:22,height:22,background:C.gold,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:11,fontWeight:900,color:C.bg,fontFamily:"sans-serif"}}>{i+1}</span></div>
+                <div style={{position:"absolute",top:7,left:7,width:22,height:22,background:C.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:11,fontWeight:900,color:C.bg,fontFamily:"sans-serif"}}>{i+1}</span></div>
               </div>
               <div style={{padding:"11px 12px",flex:1}}>
-                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}><div style={{width:30,height:30,borderRadius:"50%",background:C.goldBg,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={14} color={C.gold} style={{marginLeft:2}}/></div></div>
+                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}><div style={{width:30,height:30,borderRadius:"50%",background:C.accentBg,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={14} color={C.accent} style={{marginLeft:2}}/></div></div>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:2,lineHeight:1.2}}>{sc.title}</div>
                 <div style={{fontSize:11,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{sc.tagline}</div>
                 <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif"}}><Clock size={10} style={{display:"inline",verticalAlign:"middle"}}/> 5:00 · {sc.ripples.length} ripple effects</div>
@@ -650,14 +650,14 @@ export default function App() {
 
   const Row = ({title,events:evts})=>(
     <div style={{marginBottom:26}}>
-      <div style={{padding:"0 20px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}><div style={{width:3,height:16,background:C.gold,borderRadius:2}}/><span style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>{title}</span></div>
+      <div style={{padding:"0 20px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}><div style={{width:3,height:16,background:C.accent,borderRadius:2}}/><span style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{title}</span></div>
       <div style={{display:"flex",gap:12,paddingLeft:20,paddingRight:20,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
           <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:130,cursor:"pointer"}}>
             <div style={{width:130,height:170,background:e.grad,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:8,border:`1px solid ${C.border}`}}>
               <span style={{fontSize:44}}>{e.emoji}</span>
-              <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 6px"}}><span style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:"sans-serif"}}>{e.year}</span></div>
-              <div style={{position:"absolute",top:8,right:8,background:C.goldBg,border:`1px solid ${C.goldDark}`,borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:9,color:C.gold,fontFamily:"sans-serif"}}>5 ⑂</span></div>
+              <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 6px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
+              <div style={{position:"absolute",top:8,right:8,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:9,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
             </div>
             <div style={{fontSize:12,fontWeight:700,lineHeight:1.3,color:C.text}}>{e.short}</div>
             <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:2}}>{e.region}</div>
@@ -674,14 +674,14 @@ export default function App() {
         <div style={{background:featured.grad,minHeight:210,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 22px 22px",position:"relative"}}>
           <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(26,22,19,0.4),transparent,${C.bg})`}}/>
           <div style={{position:"relative"}}>
-            <div style={{fontSize:9,letterSpacing:3,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>★ TIMELINE OF THE WEEK</div>
+            <div style={{fontSize:9,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>★ TIMELINE OF THE WEEK</div>
             <div style={{fontSize:22,fontWeight:900,lineHeight:1.2,marginBottom:4}}>{featured.title}</div>
             <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",marginBottom:14}}>{featured.year} · {featured.region}</div>
-            <button onClick={()=>{setEvent(featured);setScreen("detail");}} style={{padding:"10px 18px",background:C.gold,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>EXPLORE 5 TIMELINES →</button>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} style={{padding:"10px 18px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>EXPLORE 5 TIMELINES →</button>
           </div>
         </div>
         <div style={{background:C.surface,display:"flex",justifyContent:"space-around",padding:"12px 16px",marginBottom:20}}>
-          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
+          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.accent,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
         </div>
         <Row title="INDIA'S ALTERNATE HISTORY" events={ACTIVE_EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
         <Row title="WORLD WARS & CONFLICTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="wars")}/>
@@ -694,15 +694,15 @@ export default function App() {
 
   const ExploreTab=()=>(
     <div style={{flex:1,overflowY:"auto",padding:"16px 0 20px"}}>
-      <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:20,background:C.gold}}/><div><div style={{fontSize:13,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>BROWSE BY ERA</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Filter history by time period</div></div></div>
+      <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:20,background:C.accent}}/><div><div style={{fontSize:13,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>BROWSE BY ERA</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Filter history by time period</div></div></div>
       <div style={{display:"flex",gap:8,padding:"0 20px",overflowX:"auto",marginBottom:20,scrollbarWidth:"none"}}>
-        {ERAS.map(e=><button key={e} onClick={()=>setEra(e)} style={{padding:"7px 14px",borderRadius:6,border:`1px solid ${era===e?C.gold:C.border}`,background:era===e?C.goldBg:"transparent",color:era===e?C.gold:C.textMuted,fontSize:10,letterSpacing:1,cursor:"pointer",fontFamily:"sans-serif",fontWeight:era===e?700:400,whiteSpace:"nowrap",flexShrink:0}}>{e}</button>)}
+        {ERAS.map(e=><button key={e} onClick={()=>setEra(e)} style={{padding:"7px 14px",borderRadius:6,border:`1px solid ${era===e?C.accent:C.border}`,background:era===e?C.accentBg:"transparent",color:era===e?C.accent:C.textMuted,fontSize:10,letterSpacing:1,cursor:"pointer",fontFamily:"sans-serif",fontWeight:era===e?700:400,whiteSpace:"nowrap",flexShrink:0}}>{e}</button>)}
       </div>
       <div style={{padding:"0 16px"}}>
         {filtered.map(e=>(
           <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`}}>
-            <div style={{width:100,minHeight:90,background:e.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}><span style={{fontSize:32}}>{e.emoji}</span><div style={{position:"absolute",bottom:7,left:7,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:"sans-serif"}}>{e.year}</span></div></div>
-            <div style={{padding:"12px 12px",flex:1}}><div style={{fontSize:9,color:C.gold,background:C.goldBg,borderRadius:3,padding:"2px 6px",display:"inline-block",marginBottom:6,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>{e.era}</div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{e.desc.substring(0,60)}...</div><div style={{fontSize:10,color:C.gold,fontFamily:"sans-serif"}}>⑂ 5 alternate timelines · {e.region}</div></div>
+            <div style={{width:100,minHeight:90,background:e.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}><span style={{fontSize:32}}>{e.emoji}</span><div style={{position:"absolute",bottom:7,left:7,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div></div>
+            <div style={{padding:"12px 12px",flex:1}}><div style={{fontSize:9,color:C.accent,background:C.accentBg,borderRadius:3,padding:"2px 6px",display:"inline-block",marginBottom:6,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>{e.era}</div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{e.desc.substring(0,60)}...</div><div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>⑂ 5 alternate timelines · {e.region}</div></div>
           </div>
         ))}
       </div>
@@ -727,9 +727,9 @@ export default function App() {
   const SearchTab=()=>(
     <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
       <div style={{position:"relative",marginBottom:16}}>
-        <Search size={16} color={C.gold} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/>
+        <Search size={16} color={C.accent} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/>
         <input value={q} onChange={e=>{setQ(e.target.value);setSuggestionSent(false);}} placeholder="Search events, eras, regions..."
-          style={{width:"100%",background:C.surface,border:`1px solid ${q?C.gold:C.border}`,borderRadius:10,padding:"11px 12px 11px 38px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"sans-serif"}}/>
+          style={{width:"100%",background:C.surface,border:`1px solid ${q?C.accent:C.border}`,borderRadius:10,padding:"11px 12px 11px 38px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"sans-serif"}}/>
         {q&&<button onClick={()=>{setQ("");setSuggestionSent(false);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:16}}>✕</button>}
       </div>
       {!q&&<div style={{marginBottom:20}}>
@@ -756,7 +756,7 @@ export default function App() {
           <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No results for "{q}"</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:20}}>We don't have this yet. Suggest it to us and we'll add it!</div>
           {!suggestionSent
-            ? <button onClick={sendSuggestion} style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",background:C.gold,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>
+            ? <button onClick={sendSuggestion} style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>
                 <Send size={14}/> Suggest "{q}"
               </button>
             : <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 24px",background:C.greenBg,border:`1px solid ${C.green}`,borderRadius:10,color:C.green,fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>
@@ -773,8 +773,8 @@ export default function App() {
     return (
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-          <div style={{width:3,height:20,background:C.gold,borderRadius:2}}/>
-          <div style={{fontSize:13,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>WHAT'S NEW</div>
+          <div style={{width:3,height:20,background:C.accent,borderRadius:2}}/>
+          <div style={{fontSize:13,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>WHAT'S NEW</div>
         </div>
         <div style={{fontSize:12,color:C.textMuted,fontFamily:"sans-serif",marginBottom:20}}>New events and timelines added to KAASH</div>
         {newEvents.length===0 ? (
@@ -785,17 +785,17 @@ export default function App() {
           </div>
         ) : newEvents.map((e,i)=>(
           <div key={e.id||i} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:12,overflow:"hidden",cursor:"pointer",border:`1px solid ${C.border}`}}>
-            <div style={{background:e.grad||"linear-gradient(135deg,#2A2418,#0E0C0A)",height:100,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            <div style={{background:e.grad||"linear-gradient(135deg,#161D29,#0A0E14)",height:100,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
               <span style={{fontSize:40}}>{e.emoji||"📜"}</span>
-              {isNew(e.createdAt)&&<div style={{position:"absolute",top:10,left:10,background:C.gold,borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,color:C.bg,letterSpacing:1}}>NEW</div>}
-              <div style={{position:"absolute",bottom:8,right:10,fontSize:10,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>📅 {e.year}</div>
+              {isNew(e.createdAt)&&<div style={{position:"absolute",top:10,left:10,background:C.accent,borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,color:C.bg,letterSpacing:1}}>NEW</div>}
+              <div style={{position:"absolute",bottom:8,right:10,fontSize:10,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>📅 {e.year}</div>
             </div>
             <div style={{padding:"12px 14px"}}>
               <div style={{fontSize:14,fontWeight:700,marginBottom:4,lineHeight:1.3}}>{e.title}</div>
               <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.5,marginBottom:8}}>{e.desc?.slice(0,80)}...</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>{e.region} · {e.era}</span>
-                <span style={{fontSize:11,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>5 timelines →</span>
+                <span style={{fontSize:11,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>5 timelines →</span>
               </div>
             </div>
           </div>
@@ -808,29 +808,29 @@ export default function App() {
     const pct=Math.round(USER.watched/USER.total*100);
     return (
       <div style={{flex:1,overflowY:"auto",padding:"0 0 20px"}}>
-        <div style={{background:`linear-gradient(135deg,${C.goldBg},transparent)`,padding:"40px 24px 24px",textAlign:"center"}}>
-          <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.gold},${C.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🎓</div>
+        <div style={{background:`linear-gradient(135deg,${C.accentBg},transparent)`,padding:"40px 24px 24px",textAlign:"center"}}>
+          <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.accent},${C.accentDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🎓</div>
           <div style={{fontSize:20,fontWeight:900}}>{loggedIn?(userName||USER.name):"Guest Explorer"}</div>
-          <div style={{fontSize:11,color:C.gold,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?USER.level:"Not signed in"}</div>
-          {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.goldBg,border:`1px solid ${C.goldDark}`,borderRadius:20,display:"inline-block",fontSize:11,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
-            : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.gold,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>GO AD-FREE — ₹49/MONTH</button>}
+          <div style={{fontSize:11,color:C.accent,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?USER.level:"Not signed in"}</div>
+          {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:20,display:"inline-block",fontSize:11,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
+            : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>GO AD-FREE — ₹49/MONTH</button>}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 20px"}}>
-          {[[<Flame size={20} color={C.clay}/>,USER.streak,"DAY STREAK"],[<Zap size={20} color={C.gold}/>,USER.xp,"XP EARNED"],[<Star size={20} color={C.gold}/>,USER.watched,"WATCHED"],[<Globe size={20} color={C.green}/>,USER.badges.length,"BADGES"]].map(([icon,val,label],i)=>(
+          {[[<Flame size={20} color={C.accent2}/>,USER.streak,"DAY STREAK"],[<Zap size={20} color={C.accent}/>,USER.xp,"XP EARNED"],[<Star size={20} color={C.accent}/>,USER.watched,"WATCHED"],[<Globe size={20} color={C.green}/>,USER.badges.length,"BADGES"]].map(([icon,val,label],i)=>(
             <div key={i} style={{background:C.card,borderRadius:10,padding:"14px",textAlign:"center",border:`1px solid ${C.border}`}}><div style={{marginBottom:6}}>{icon}</div><div style={{fontSize:22,fontWeight:900,color:C.text,fontFamily:"sans-serif"}}>{val}</div><div style={{fontSize:9,letterSpacing:1.5,color:C.textMuted,fontFamily:"sans-serif"}}>{label}</div></div>
           ))}
         </div>
         <div style={{padding:"0 16px 16px"}}>
-          <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>TIMELINES EXPLORED</div>
-          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,fontFamily:"sans-serif"}}>{USER.watched} of {USER.total}</span><span style={{fontSize:13,color:C.gold,fontFamily:"sans-serif",fontWeight:700}}>{pct}%</span></div><div style={{height:6,background:C.elevated,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.gold},${C.goldLight})`,borderRadius:3}}/></div></div>
+          <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>TIMELINES EXPLORED</div>
+          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,fontFamily:"sans-serif"}}>{USER.watched} of {USER.total}</span><span style={{fontSize:13,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{pct}%</span></div><div style={{height:6,background:C.elevated,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.accentLight})`,borderRadius:3}}/></div></div>
         </div>
         <div style={{padding:"0 16px 16px"}}>
-          <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>YOUR PRIVACY</div>
+          <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>YOUR PRIVACY</div>
           <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,display:"flex",gap:12,alignItems:"flex-start"}}><ShieldCheck size={18} color={C.green} style={{flexShrink:0,marginTop:2}}/><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>We store only your email and watch history. We never sell your data. Delete everything anytime from Settings.</div></div>
         </div>
         <div style={{padding:"0 16px"}}>
           <button onClick={()=>setSettingsPage("menu")} style={{width:"100%",display:"flex",alignItems:"center",gap:12,background:C.card,borderRadius:10,padding:"15px 16px",cursor:"pointer",border:`1px solid ${C.border}`}}>
-            <SettingsIcon size={18} color={C.gold}/>
+            <SettingsIcon size={18} color={C.accent}/>
             <span style={{fontSize:14,color:C.text,fontFamily:"sans-serif"}}>Settings</span>
             <ChevronRight size={18} color={C.textMuted} style={{marginLeft:"auto"}}/>
           </button>
@@ -844,10 +844,13 @@ export default function App() {
   return (
     <div style={s}>
       <div style={{background:C.surface,padding:"44px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
-        <div><span style={{fontSize:22,fontWeight:900,letterSpacing:4,color:C.gold}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <KaashMark size={28}/>
+          <div><span style={{fontSize:20,fontWeight:900,letterSpacing:4,color:C.text}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+        </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          {premium && <div style={{fontSize:9,color:C.gold,fontFamily:"sans-serif",fontWeight:700,background:C.goldBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.goldDark}`}}>AD-FREE</div>}
-          <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.clay}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{USER.streak}</span></div>
+          {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.accentDark}`}}>AD-FREE</div>}
+          <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{USER.streak}</span></div>
         </div>
       </div>
       {tab==="home"&&<HomeTab/>}
@@ -856,7 +859,7 @@ export default function App() {
       {tab==="search"&&<SearchTab/>}
       {tab==="profile"&&<ProfileTab/>}
       <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
-        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.gold:C.textMuted}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
+        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
       </div>
     </div>
   );
@@ -880,13 +883,13 @@ function UpNextScreen({scenario,event,countdown,setCountdown,onPlay,onSkip}){
         <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:6}}>{scenario.title}</div>
         <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:6}}>"{scenario.tagline}"</div>
         <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:28}}>from: {event.short}</div>
-        <div style={{width:64,height:64,borderRadius:"50%",border:`3px solid ${C.gold}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,position:"relative"}}>
-          <span style={{fontSize:22,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{countdown}</span>
+        <div style={{width:64,height:64,borderRadius:"50%",border:`3px solid ${C.accent}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,position:"relative"}}>
+          <span style={{fontSize:22,fontWeight:900,color:C.accent,fontFamily:"sans-serif"}}>{countdown}</span>
         </div>
       </div>
       <div style={{padding:"0 24px 32px",display:"flex",gap:12,flexShrink:0}}>
         <button onClick={onSkip} style={{flex:1,padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,cursor:"pointer",fontFamily:"sans-serif",fontSize:13}}>Home</button>
-        <button onClick={onPlay} style={{flex:2,padding:"13px 0",background:C.gold,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700,letterSpacing:1}}>▶ PLAY NOW</button>
+        <button onClick={onPlay} style={{flex:2,padding:"13px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700,letterSpacing:1}}>▶ PLAY NOW</button>
       </div>
     </div>
   );
@@ -902,10 +905,10 @@ function AdScreen({onDone,onUpgrade}){
         <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,position:"absolute",top:48,left:20}}>ADVERTISEMENT</div>
         <div style={{fontSize:48,marginBottom:16}}>📺</div>
         <div style={{fontSize:16,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.5}}>Your ad plays here.<br/>This is how KAASH stays free.</div>
-        <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.gold,fontWeight:900,fontSize:18}}>{count}</span></div>
+        <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.accent,fontWeight:900,fontSize:18}}>{count}</span></div>
       </div>
       <div style={{padding:"16px 20px 28px",background:C.bg}}>
-        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>REMOVE ADS — ₹49/MONTH</button>
+        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>REMOVE ADS — ₹49/MONTH</button>
       </div>
     </div>
   );
@@ -917,10 +920,24 @@ function DisclaimerScreen({onDone}){
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:C.bg,color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",padding:"0 36px",textAlign:"center"}}>
       <div style={{fontSize:32,marginBottom:20}}>📜</div>
-      <div style={{fontSize:11,letterSpacing:3,color:C.gold,fontWeight:700,marginBottom:14}}>ALTERNATE HISTORY FICTION</div>
+      <div style={{fontSize:11,letterSpacing:3,color:C.accent,fontWeight:700,marginBottom:14}}>ALTERNATE HISTORY FICTION</div>
       <div style={{fontSize:15,color:C.textSec,lineHeight:1.7,maxWidth:300}}>The following is a <span style={{color:C.text,fontWeight:600}}>speculative, fictional</span> exploration created for educational entertainment. It does not represent actual historical events or the views of any community, nation, or group.</div>
-      <div style={{marginTop:32,width:48,height:48,borderRadius:"50%",border:`2px solid ${C.goldDark}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:C.gold}}>{count}</div>
+      <div style={{marginTop:32,width:48,height:48,borderRadius:"50%",border:`2px solid ${C.accentDark}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:C.accent}}>{count}</div>
       <button onClick={onDone} style={{marginTop:24,background:"transparent",border:"none",color:C.textMuted,fontSize:12,cursor:"pointer",letterSpacing:1}}>SKIP →</button>
     </div>
+  );
+}
+
+// ─── KAASH LOGO MARK ────────────────────────────────────────────────
+// "Echo K" — a K with its lower stroke echoed in the accent blue,
+// representing one timeline branching into two.
+function KaashMark({size=28}){
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" style={{flexShrink:0}}>
+      <rect x="10" y="6" width="4" height="28" rx="1" fill={C.text}/>
+      <path d="M14,20 L34,6" stroke={C.text} strokeWidth="4" strokeLinecap="round" fill="none"/>
+      <path d="M14,20 L30,34" stroke={C.text} strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.25"/>
+      <path d="M17,23 L33,37" stroke={C.accent} strokeWidth="4" strokeLinecap="round" fill="none"/>
+    </svg>
   );
 }

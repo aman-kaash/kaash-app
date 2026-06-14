@@ -490,7 +490,8 @@ function ContentManager() {
     const key = `${eventId}_s${sNum}_${lang}`;
     setDeleting(key);
     try {
-      const fileName = `${eventId}_s${sNum}_${lang==="EN"?"_en":"_hi"}.mp4`;
+      const langSuffix = lang==="HI" ? "_hi" : "_en";
+      const fileName = `${eventId}_s${sNum}${langSuffix}.mp4`;
       try { await firebase.deleteObject(firebase.storageRef(firebase.storage, `videos/${fileName}`)); } catch(e) {}
       const fieldName = lang==="EN" ? "videoUrl_en" : "videoUrl_hi";
       await firebase.setDoc(firebase.doc(firebase.db,"events",eventId,"scenarios",`s${sNum}`), {[fieldName]:null}, {merge:true});
@@ -1023,7 +1024,7 @@ function PaymentsTab() {
   const firebase = useFirebase();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [totals, setTotals] = useState({base:0,gst:0,total:0,monthly:0,yearly:0});
+  const [totals, setTotals] = useState({base:0,monthly:0,yearly:0});
 
   useEffect(()=>{
     if (!firebase) return;
@@ -1045,10 +1046,11 @@ function PaymentsTab() {
   },[firebase]);
 
   const exportPaymentsCSV = () => {
-    const rows=[["Payment ID","User Email","Plan","Base (₹)","GST (₹)","Total (₹)","Paid At","Order ID"]];
+    const rows=[["Payment ID","User Email","Plan","Amount (₹)","GST (₹)","Total (₹)","Paid At","Order ID"]];
     payments.forEach(p=>{
+      const amt = p.amount||p.baseAmount||0;
       rows.push([p.razorpayPaymentId||p.id, p.email||"—", p.plan||"—",
-        p.baseAmount||0, p.gstAmount||0, p.totalAmount||0,
+        amt, 0, amt,
         p.paidAt?.slice(0,10)||"—", p.razorpayOrderId||"—"]);
     });
     const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");

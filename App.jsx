@@ -187,27 +187,59 @@ export default function App() {
       rzpScript.async = true;
       document.body.appendChild(rzpScript);
 
-      // Load events from Firestore (app reads dynamic content from here)
+      // Load events from Firestore and MERGE onto the built-in catalog.
+      //
+      // CRITICAL: previously this REPLACED the entire built-in EVENTS
+      // catalog with whatever partial data existed in Firestore. The
+      // moment a single video was uploaded via Admin for one scenario
+      // (which writes only {videoUrl_en, num} via setDoc merge), the
+      // app would show ONLY that one event/scenario to ALL users and
+      // crash on it (missing narrative/ripples/title/tagline).
+      //
+      // Now: the static EVENTS array is always the base. Firestore data
+      // enriches matching event/scenario entries (e.g. adds videoUrl_en/
+      // videoUrl_hi once uploaded) without removing built-in content.
+      // Brand-new events created via Admin's "New Event" tab (an id not
+      // in the static catalog, with a title and at least one scenario)
+      // are appended on top.
       const loadEvents = async () => {
         try {
           const snap = await fb.getDocs(fb.collection(fb.db,"events"));
           if(snap.size > 0){
-            const loaded = [];
+            const overrides = {};
             for(const evDoc of snap.docs){
               const evData = evDoc.data();
-              if(!evData.title) continue; // skip incomplete docs
               const scenSnap = await fb.getDocs(fb.collection(fb.db,"events",evDoc.id,"scenarios"));
-              const scenarios = [];
-              scenSnap.forEach(s => { if(s.data().num) scenarios.push(s.data()); });
-              scenarios.sort((a,b)=>a.num-b.num);
-              if(scenarios.length > 0) loaded.push({...evData, id:evDoc.id, scenarios});
+              const scenMap = {};
+              scenSnap.forEach(sd => { const d=sd.data(); if(d.num) scenMap[d.num]=d; });
+              overrides[evDoc.id] = {evData, scenMap};
             }
-            if(loaded.length > 0) setDynamicEvents(loaded);
+
+            const merged = EVENTS.map(staticEv => {
+              const ov = overrides[staticEv.id];
+              const mergedEvFields = ov?.evData?.title ? {...staticEv, ...ov.evData} : staticEv;
+              const mergedScenarios = staticEv.scenarios.map(staticSc => {
+                const scOv = ov?.scenMap?.[staticSc.num];
+                return scOv ? {...staticSc, ...scOv} : staticSc;
+              });
+              return {...mergedEvFields, id:staticEv.id, scenarios:mergedScenarios};
+            });
+
+            // Append brand-new events not in the static catalog
+            for(const [evId, ov] of Object.entries(overrides)){
+              if(EVENTS.some(e=>e.id===evId)) continue;
+              if(!ov.evData?.title) continue;
+              const scenarios = Object.values(ov.scenMap).filter(sc=>sc.num).sort((a,b)=>a.num-b.num);
+              if(scenarios.length > 0) merged.push({...ov.evData, id:evId, scenarios});
+            }
+
+            setDynamicEvents(merged);
           }
         } catch(e){ console.error("Firestore events load failed, using built-in content",e); }
         setEventsLoading(false);
       };
       loadEvents();
+
 
       // Load What's New events (sorted by createdAt desc)
       const loadNew = async () => {
@@ -306,7 +338,7 @@ export default function App() {
     const idx = event.scenarios.findIndex(s=>s.num===scenario.num);
     if(idx<event.scenarios.length-1) return {sc:event.scenarios[idx+1],ev:event};
     const evIdx = ACTIVE_EVENTS.findIndex(e=>e.id===event.id);
-    const nextEv = ACTIVE_EVENTS[(evIdx+1)%EVENTS.length];
+    const nextEv = ACTIVE_EVENTS[(evIdx+1)%ACTIVE_EVENTS.length];
     return {sc:nextEv.scenarios[0],ev:nextEv};
   };
 
@@ -466,12 +498,53 @@ export default function App() {
           {paymentError&&<div style={{background:"rgba(199,93,74,0.14)",border:"1px solid rgba(199,93,74,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
           <button onClick={initiatePayment} disabled={paymentLoading}
             style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.gold,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
-            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+KAASH_PLANS[selectedPlan].total.toFixed(2)+"/"+KAASH_PLANS[selectedPlan].label.toLowerCase()}
+            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+KAASH_PLANS[selectedPlan].amount.toFixed(2)+"/"+KAASH_PLANS[selectedPlan].label.toLowerCase()}
           </button>
           <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.5}}>
             Secure payment via Razorpay · UPI · Cards · Net Banking<br/>Cancel anytime · No hidden fees
           </div>
           <div style={{height:24}}/>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── SETTINGS ───
+  // Previously: the Profile tab's "Settings" button called
+  // setSettingsPage("menu") but nothing ever read settingsPage — the
+  // button did nothing, and handleSignOut (defined above) was never
+  // reachable from any UI element. This screen fixes both.
+  if (settingsPage==="menu") {
+    return (
+      <div style={{...s,overflowY:"auto"}}>
+        <div style={{padding:"44px 20px 16px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+          <button onClick={()=>setSettingsPage(null)} style={{background:"transparent",border:"none",cursor:"pointer",display:"flex",padding:0}}><ArrowLeft size={20} color={C.text}/></button>
+          <span style={{fontSize:16,fontWeight:900,letterSpacing:1}}>Settings</span>
+        </div>
+        <div style={{padding:"20px"}}>
+          {loggedIn && (
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ACCOUNT</div>
+              <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,marginBottom:10}}>
+                <div style={{fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>{userName||"Signed in"}</div>
+                <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginTop:2}}>{userEmail}</div>
+              </div>
+              <button onClick={async ()=>{ await handleSignOut(); setSettingsPage(null); setTab("home"); setScreen("home"); }}
+                style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700}}>Sign Out</button>
+            </div>
+          )}
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ABOUT</div>
+            <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
+              KAASH — Alternate History. All content is speculative fiction, created for educational entertainment.
+            </div>
+          </div>
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.gold,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>YOUR DATA</div>
+            <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
+              To request deletion of your account and watch history, email <span style={{color:C.gold}}>support@kaash.app</span>.
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -502,7 +575,7 @@ export default function App() {
           <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:10}}>"{scenario.tagline}"</div>
           <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
             <span style={{fontSize:10,color:C.gold,background:C.goldBg,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif",fontWeight:700}}>🔊 {lang==="EN"?"English":"हिंदी"} Narration</span>
-            <span style={{fontSize:10,color:C.textSec,background:C.surface,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif"}}>CC English Subtitles</span>
+            <span style={{fontSize:10,color:C.textSec,background:C.surface,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif"}}>CC {lang==="EN"?"English":"Hindi"} Subtitles</span>
           </div>
           <div style={{height:1,background:C.border,marginBottom:16}}/>
           {[
@@ -595,7 +668,7 @@ export default function App() {
   );
 
   const HomeTab=()=>{
-    const featured=ACTIVE_EVENTS[2];
+    const featured=ACTIVE_EVENTS[2]||ACTIVE_EVENTS[0];
     return (
       <div style={{flex:1,overflowY:"auto",paddingBottom:20}}>
         <div style={{background:featured.grad,minHeight:210,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 22px 22px",position:"relative"}}>
@@ -608,13 +681,13 @@ export default function App() {
           </div>
         </div>
         <div style={{background:C.surface,display:"flex",justifyContent:"space-around",padding:"12px 16px",marginBottom:20}}>
-          {[["100","ACTIVE_EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
+          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.gold,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
         </div>
         <Row title="INDIA'S ALTERNATE HISTORY" events={ACTIVE_EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
         <Row title="WORLD WARS & CONFLICTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="wars")}/>
         <Row title="SCIENTIFIC TURNING POINTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="science"||e.id==="moon")}/>
         <Row title="ANCIENT WORLD" events={ACTIVE_EVENTS.filter(e=>e.cat==="ancient")}/>
-        <Row title="ALL ACTIVE_EVENTS" events={ACTIVE_EVENTS}/>
+        <Row title="ALL EVENTS" events={ACTIVE_EVENTS}/>
       </div>
     );
   };

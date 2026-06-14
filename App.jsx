@@ -47,7 +47,7 @@ function loadFirebase() {
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
 // Replace with your Razorpay Key ID from the Razorpay Dashboard
 // Use rzp_test_XXXX while testing, rzp_live_XXXX for production
-const RAZORPAY_KEY_ID = "rzp_test_REPLACE_WITH_YOUR_KEY_ID";
+const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
 
 // Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
 // Once annual app revenue crosses ₹20 lakh, GST registration required
@@ -269,6 +269,10 @@ export default function App() {
         modal: {confirm_close:true},
         handler: async (response) => {
           try {
+            // Server verifies the HMAC signature AND grants premium via
+            // the Admin SDK in one step — the client no longer writes
+            // isPremium/payments directly (that write path is now
+            // blocked entirely by firestore.rules).
             const vRes = await fetch("/api/verify-payment",{
               method:"POST",
               headers:{"Content-Type":"application/json"},
@@ -276,33 +280,17 @@ export default function App() {
                 razorpay_order_id:response.razorpay_order_id,
                 razorpay_payment_id:response.razorpay_payment_id,
                 razorpay_signature:response.razorpay_signature,
-                plan:selectedPlan, userId:fb.auth.currentUser.uid, userEmail,
+                plan:selectedPlan, userId:fb.auth.currentUser.uid, userEmail, userName,
               }),
             });
             const vData = await vRes.json();
-            if(!vData.success) throw new Error("Payment verification failed");
-            const expiry = selectedPlan==="yearly"
-              ? new Date(Date.now()+365*24*60*60*1000).toISOString()
-              : new Date(Date.now()+30*24*60*60*1000).toISOString();
-            await fb.setDoc(fb.doc(fb.db,"users",fb.auth.currentUser.uid),
-              {isPremium:true, premiumPlan:selectedPlan, premiumExpiry:expiry, premiumSince:new Date().toISOString()},
-              {merge:true});
-            await fb.setDoc(fb.doc(fb.db,"payments",response.razorpay_payment_id),{
-              userId:fb.auth.currentUser.uid, email:userEmail, name:userName,
-              plan:selectedPlan,
-              amount:KAASH_PLANS[selectedPlan].amount,
-              currency:"INR",
-              razorpayOrderId:response.razorpay_order_id,
-              razorpayPaymentId:response.razorpay_payment_id,
-              paidAt:new Date().toISOString(),
-              financialYear: new Date().getMonth()>=3
-                ? `${new Date().getFullYear()}-${new Date().getFullYear()+1}`
-                : `${new Date().getFullYear()-1}-${new Date().getFullYear()}`,
-              status:"completed",
-            });
+            if(!vData.success) throw new Error(vData.error || "Payment verification failed");
+            // Server confirmed + persisted premium status. Update local
+            // UI state immediately; the next Firestore read on app load
+            // will also reflect the real (server-written) value.
             setPremium(true); setPaywall(false); setPaymentLoading(false);
           } catch(e){
-            setPaymentError("Payment received but verification failed. Email support@kaash.app with payment ID: "+response.razorpay_payment_id);
+            setPaymentError("Payment received but activation failed. Email support@kaash.app with payment ID: "+response.razorpay_payment_id+" — "+e.message);
             setPaymentLoading(false);
           }
         },
@@ -403,7 +391,13 @@ export default function App() {
                 const seen = snap.exists() && snap.data().hasSeenOnboard;
                 await f.setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
                 if(snap.exists() && snap.data().isPremium) setPremium(true);
-                if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
+                const isPrem = snap.exists() && snap.data().isPremium;
+                if (pendingWatch) {
+                  const {sc, ev} = pendingWatch;
+                  setPendingWatch(null);
+                  setScenario(sc); setEvent(ev); setExpandN(false); setExpandR(false);
+                  if (!isPrem) setScreen("ad"); else setScreen("disclaimer");
+                } else if(!seen){ setHasSeenOnboard(false); setScreen("onboard"); }
                 else { setHasSeenOnboard(true); setScreen("home"); }
               } catch(e){ console.error("Sign-in failed:", e); }
             }}

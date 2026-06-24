@@ -1,24 +1,29 @@
 {
   "name": "KAASH — Alternate History",
   "short_name": "KAASH",
-  "description": "What if history went differently? Watch 5 AI alternate history timelines per event.",
+  "description": "What if history went differently? Explore alternate timelines through cinematic documentaries.",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#070707",
-  "theme_color": "#070707",
+  "orientation": "any",
+  "theme_color": "#0A0E14",
+  "background_color": "#0A0E14",
+  "lang": "en-IN",
+  "categories": ["entertainment", "education"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/kaash_icon_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/kaash_icon_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

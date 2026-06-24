@@ -1,6 +1,18 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send } from "lucide-react";
+// ─── KAASH v1.13 ────────────────────────────────────────────────────
+// Player: YouTube-style, BOTH orientations, user-controlled.
+//  • Inline (default): vertical 9:16 frame in the scrolling page.
+//  • Fullscreen: fills the screen via an explicit toggle button (works
+//    across browsers + Android TWA). Orientation is NOT forced — the
+//    device rotation sensor leads, so a vertical video can be fullscreen
+//    portrait (immersive, like a Short) OR rotated to landscape, and back.
+//  • object-fit:contain keeps aspect ratio in every orientation (no crop).
+//  Exactly YouTube: upright by default, rotate on demand, rotate back.
+// ────────────────────────────────────────────────────────────────────
+
+
+import { Home, Compass, Search, User, Flame, Play, ChevronRight, ChevronDown, ChevronUp, Share2, Bookmark, CheckCircle, Clock, Star, ArrowLeft, Zap, Globe, ShieldCheck, X, Settings as SettingsIcon, Bell, Send, Maximize, Minimize } from "lucide-react";
 
 // ─── FIREBASE CONFIG (kaash-app project) ────────────────────────────
 const firebaseConfig = {
@@ -45,16 +57,43 @@ function loadFirebase() {
 
 // ─── WARM CINEMA THEME ──────────────────────────────────────────────
 // ─── RAZORPAY CONFIG ─────────────────────────────────────────────────
-// Replace with your Razorpay Key ID from the Razorpay Dashboard
 // Use rzp_test_XXXX while testing, rzp_live_XXXX for production
 const RAZORPAY_KEY_ID = "rzp_test_T0QAljI1MTmXyq";
 
-// Pricing - no GST collected (app revenue below ₹20 lakh GST threshold)
-// Once annual app revenue crosses ₹20 lakh, GST registration required
-// At that point update these prices to add 18% GST
+// ─── GOOGLE PLAY BILLING CONFIG ──────────────────────────────────────
+// These product IDs must match what you create in Play Console
+// Play Console → Monetize → Subscriptions → Create subscription
+const PLAY_PRODUCT_IDS = {
+  monthly: "kaash_monthly",
+  yearly:  "kaash_yearly",
+};
+
+// ─── PRICING ─────────────────────────────────────────────────────────
+// Prices are EXCLUSIVE of GST (18% on digital services, HSN 9984).
+// Web (Razorpay): base price shown, GST added at checkout.
+// Play Billing: Google handles tax display automatically.
+const GST_RATE = 0.18;
 const KAASH_PLANS = {
-  monthly: { amount:49,  label:"Monthly", paise:4900,  savingNote:"",            perMonth:49 },
-  yearly:  { amount:499, label:"Yearly",  paise:49900, savingNote:"Save ₹89 vs monthly", perMonth:41.58 },
+  monthly: {
+    amount: 49,             // ex-GST base price
+    gst: +(49 * GST_RATE).toFixed(2),          // ₹8.82
+    total: +(49 * (1 + GST_RATE)).toFixed(2),  // ₹57.82
+    paise: Math.round(49 * (1 + GST_RATE) * 100), // 5782 paise
+    label: "Monthly",
+    savingNote: "",
+    perMonth: 49,
+    days: 30,
+  },
+  yearly: {
+    amount: 499,
+    gst: +(499 * GST_RATE).toFixed(2),          // ₹89.82
+    total: +(499 * (1 + GST_RATE)).toFixed(2),  // ₹588.82
+    paise: Math.round(499 * (1 + GST_RATE) * 100), // 58882 paise
+    label: "Yearly",
+    savingNote: "Save ₹89 vs monthly",
+    perMonth: +(499/12).toFixed(2),
+    days: 365,
+  },
 };
 
 const C = {
@@ -63,12 +102,27 @@ const C = {
   accent2:"#5FD4C8", accent2Bg:"rgba(95,212,200,0.14)",
   red:"#E0635A", green:"#6FBF73", greenBg:"rgba(111,191,115,0.14)",
   text:"#F5F7FA", textSec:"#9AA5B8", textMuted:"#5C6A80",
+  shadow:"0 2px 10px rgba(0,0,0,0.28)", shadowLg:"0 8px 24px rgba(0,0,0,0.35)",
 };
 
-const USER = { name:"Aman", streak:7, xp:2450, level:"Senior Historian", watched:23, total:500, badges:["Ancient Scholar","WW2 Expert","India Historian"] };
+// ─── PROGRESS SYSTEM ──────────────────────────────────────────────
+// XP is derived from videos watched (no separate counter to keep in
+// sync). Rank is the highest threshold the user's XP clears.
+const XP_PER_VIDEO = 25;
+const RANKS = [
+  {min:0,   title:"New Explorer"},
+  {min:25,  title:"History Enthusiast"},
+  {min:75,  title:"Timeline Explorer"},
+  {min:200, title:"Senior Historian"},
+  {min:375, title:"Master Historian"},
+  {min:625, title:"Grand Chronicler"},
+];
+const getRank = (xp) => RANKS.reduce((acc,r)=> xp>=r.min ? r.title : acc, RANKS[0].title);
+const todayStr = () => new Date().toISOString().slice(0,10);
+const yesterdayStr = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
 
 const EVENTS = [
-  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#3D2A38,#12141C)",
+  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#3D2A38,#12141C)", badge:"WW1 Scholar",
     desc:"On June 28, 1914, a single bullet in Sarajevo triggered a chain reaction killing 20 million and reshaping every nation on Earth.",
     tags:["WW1","Europe","Nationalism"],
     scenarios:[
@@ -79,7 +133,7 @@ const EVENTS = [
       {num:5,title:"Princip Hits the Wrong Target",tagline:"What if he killed a minor official?",ripples:["Austria-Hungary reforms — survives as federal state into 1930s","Delayed but smaller world war in 1924 — 3 million not 20 million dead","No Versailles humiliation — Hitler never rises to power","Russian monarchy survives longer, gentle reforms avoid revolution","The 20th century is brutal but not apocalyptic"],narrative:"The Sarajevo plot goes slightly wrong. Princip fires — but shoots Count von Berchtold, Austria's Foreign Minister, instead of the Archduke. Franz Ferdinand survives.\n\nAustria protests, negotiates, gets concessions from Serbia. No war. Europe avoids 1914's catastrophe.\n\nBut the underlying tensions find release in a different crisis a decade later. A smaller delayed war comes in 1924 — 3 million dead instead of 20 million. Terrible, but survivable."},
     ]
   },
-  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#28365A,#12141C)",
+  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#28365A,#12141C)", badge:"WW2 Expert",
     desc:"The deadliest conflict in human history — 70-85 million dead, the Holocaust, the atomic bomb, and a world order remade from its ashes.",
     tags:["Holocaust","Nuclear Age","Fascism"],
     scenarios:[
@@ -90,7 +144,7 @@ const EVENTS = [
       {num:5,title:"Atomic Bomb Never Used",tagline:"What if Truman chose invasion?",ripples:["1 million+ Allied deaths in Japanese invasion","Japan physically destroyed through conventional war — decades slower recovery","Nuclear taboo never exists — Cold War catastrophically more dangerous","Anti-nuclear movement never exists — no Hiroshima imagery to point to","Korean War: South Korea almost certainly falls to the North"],narrative:"Summer 1945. Truman chooses Operation Downfall over the atomic bomb. The ground invasion of Japan begins November 1945. One million Allied casualties. Five to ten million Japanese killed.\n\nThe bomb exists — but having never been used, its psychological weight is different. When the Soviets test their device in 1950, there is no 'you already crossed that line' dynamic.\n\nThe Cold War nearly becomes hot — three times. The horror of Hiroshima that restrained real leaders does not exist in this world."},
     ]
   },
-  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#1F3D3A,#12141C)",
+  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#1F3D3A,#12141C)", badge:"India Historian",
     desc:"August 1947: British India divided into two nations overnight. Up to 2 million killed, 15 million displaced, and a nuclear rivalry born that shapes South Asia today.",
     tags:["India","Pakistan","Independence"],
     scenarios:[
@@ -101,7 +155,7 @@ const EVENTS = [
       {num:5,title:"Slower Partition — No Violence",tagline:"What if Britain stayed until 1960?",ripples:["Partition violence never happens — 2 million lives saved overnight","South Asian confederation with open borders established by 1960","Kashmir integrated through negotiation — no Line of Control","Neither India nor Pakistan develops nuclear weapons until 1990s","The subcontinent's most talented people never flee refugee crisis"],narrative:"A slow, negotiated transfer — province by province over 13 years — begins in 1947 but completes in 1960. The violence of 1947 never happens. Communities migrate gradually, retaining property and dignity.\n\nBy 1960, a confederation emerges: India and Pakistan as separate nations but within a South Asian economic community — like the EU, 30 years early.\n\nThe resources spent on three wars and two nuclear programs are channelled into roads, hospitals, and schools for one billion people."},
     ]
   },
-  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#2C3D5E,#12141C)",
+  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#2C3D5E,#12141C)", badge:"Space Pioneer",
     desc:"July 20, 1969. Humanity's greatest achievement. But what if the most audacious mission in history had gone differently?",
     tags:["Space Race","Cold War","NASA"],
     scenarios:[
@@ -112,7 +166,7 @@ const EVENTS = [
       {num:5,title:"China Lands First in 1969",tagline:"What if there were three entrants?",ripples:["Three-way space race drives unprecedented global investment","China becomes space and tech superpower 50 years ahead of schedule","Asian century begins in 1975 not 2000","Cold War becomes three-polar — fundamentally different geopolitics","Space becomes Asia-Pacific dominated"],narrative:"China, which in reality had its own quietly cancelled lunar program, succeeds in this timeline. July 25, 1969: five days after Armstrong, a Chinese taikonaut plants the five-star red flag on the lunar surface.\n\nThree flags on the Moon within a week. A three-way space race begins — and with it, a three-polar Cold War.\n\nChina becomes a technology superpower in the 1970s instead of the 2000s. The Asian century begins 25 years early."},
     ]
   },
-  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3E3525,#12141C)",
+  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3E3525,#12141C)", badge:"Ancient Scholar",
     desc:"Alexander the Great died at 32 in Babylon — possibly the most consequential early death in history. What if he had lived another 40 years?",
     tags:["Ancient","Alexander","Greece"],
     scenarios:[
@@ -123,7 +177,7 @@ const EVENTS = [
       {num:5,title:"Alexander Reaches the Americas",tagline:"What if he sailed west?",ripples:["Old World meets New World 1800 years before Columbus","Native American civilizations encounter Greek science early","Disease still spreads but from much smaller initial contact","Two parallel civilizations develop in contact from 280 BC","The world of 2024 has 1800 more years of cross-cultural exchange"],narrative:"310 BC. Alexander, obsessed with what lies beyond the Pillars of Hercules, commissions a massive fleet. Sailing west from Carthage, after months at sea, his ships reach the Caribbean.\n\nThe encounter is different from Columbus's: Alexander is curious, not acquisitive. He establishes a trading colony. Greek mathematics spreads; Mesoamerican astronomy flows east.\n\nTwo civilizations in contact from 280 BC have 1,800 more years of exchange."},
     ]
   },
-  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#3A2A22,#12141C)",
+  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#3A2A22,#12141C)", badge:"Cold War Analyst",
     desc:"October 1962: the closest humanity has ever come to nuclear war. 13 days when a single wrong decision could have ended civilization.",
     tags:["Cold War","Nuclear","Kennedy"],
     scenarios:[
@@ -139,20 +193,29 @@ const EVENTS = [
 const ERAS = ["ALL","ANCIENT","MODERN","CONTEMPORARY"];
 
 export default function App() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState(()=> {
+    if(typeof window==="undefined") return "home";
+    if(!localStorage.getItem("kaash_age_verified")) return "agegate";
+    if(!localStorage.getItem("kaash_onboarded")) return "onboard";
+    return "home";
+  });
   const [slide, setSlide] = useState(0);
   const [tab, setTab] = useState("home");
   const [event, setEvent] = useState(null);
   const [scenario, setScenario] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [premium, setPremium] = useState(false);
+  // TWA = running inside Play Store Android app (Digital Goods API available)
+  const [isTWA, setIsTWA] = useState(false);
+  // Play subscription token stored for re-verification on app open
+  const [playToken, setPlayToken] = useState(null);
   const [watchCount, setWatchCount] = useState(0);
   const [paywall, setPaywall] = useState(false);
   const [era, setEra] = useState("ALL");
   const [q, setQ] = useState("");
   const [expandN, setExpandN] = useState(false);
   const [expandR, setExpandR] = useState(false);
-  const [termsChecked, setTermsChecked] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(()=> typeof window!=="undefined" && localStorage.getItem("kaash_terms")==="1");
   const [pendingWatch, setPendingWatch] = useState(null);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
@@ -165,13 +228,161 @@ export default function App() {
   const [hasSeenOnboard, setHasSeenOnboard] = useState(false);
   const [lang, setLang] = useState("EN");
   const [settingsPage, setSettingsPage] = useState(null);
-  const [watched, setWatched] = useState(new Set(["ww1_1","ww1_2","ww2_1"]));
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [watched, setWatched] = useState(new Set());
+  const [streak, setStreak] = useState(0);
+  const [lastWatchDate, setLastWatchDate] = useState(null);
   const [suggestionSent, setSuggestionSent] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("yearly");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [newEvents, setNewEvents] = useState([]);
-  const markW = (id) => setWatched(prev => new Set([...prev, id]));
+  const [bookmarks, setBookmarks] = useState(new Set());
+  const [videoProgress, setVideoProgress] = useState({}); // {scenarioId: seconds}
+  const [videoStatus, setVideoStatus] = useState("loading"); // loading|ready|error, for current video
+
+  // ─── RESPONSIVE: desktop gets a Netflix-style browse layout for Home ───
+  const [isDesktop, setIsDesktop] = useState(typeof window!=="undefined" && window.innerWidth>=1024);
+  useEffect(()=>{
+    const onResize=()=>setIsDesktop(window.innerWidth>=1024);
+    window.addEventListener("resize",onResize);
+    return ()=>window.removeEventListener("resize",onResize);
+  },[]);
+
+  // ─── TWA DETECTION + PLAY SUBSCRIPTION RE-VERIFICATION ───────────────
+  // Digital Goods API is only available inside a TWA (Play Store Android app).
+  // On each app open, if the user has a stored Play purchase token, re-verify
+  // it server-side to catch renewals, cancellations, and expirations.
+  useEffect(()=>{
+    const detectAndVerify = async () => {
+      if(typeof window === "undefined") return;
+      if(!("getDigitalGoodsService" in window)) return; // not a TWA
+      try {
+        const service = await window.getDigitalGoodsService("https://play.google.com/billing");
+        if(!service) return;
+        setIsTWA(true);
+        // Re-verify existing Play subscription if we have a token and user is logged in
+        const storedToken = localStorage.getItem("kaash_play_token");
+        const storedProductId = localStorage.getItem("kaash_play_product");
+        if(storedToken && storedProductId && fb && fb.auth.currentUser){
+          try {
+            const res = await fetch("/api/verify-play-purchase", {
+              method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body: JSON.stringify({
+                purchaseToken: storedToken,
+                productId: storedProductId,
+                userId: fb.auth.currentUser.uid,
+                userEmail: fb.auth.currentUser.email || "",
+                reVerify: true,
+              }),
+            });
+            const data = await res.json();
+            if(data.success && data.isActive){
+              setPremium(true);
+              setPlayToken(storedToken);
+            } else {
+              // Subscription lapsed or cancelled
+              setPremium(false);
+              localStorage.removeItem("kaash_play_token");
+              localStorage.removeItem("kaash_play_product");
+            }
+          } catch(e){ /* network error — don't revoke premium, fail safe */ }
+        }
+      } catch(e){ /* getDigitalGoodsService failed — not a TWA */ }
+    };
+    detectAndVerify();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[fb, loggedIn]); // re-run after sign-in so we have fb.auth.currentUser
+
+  // ─── FULLSCREEN VIDEO: YouTube-style adaptive orientation ───
+  // Both orientations supported, user-controlled:
+  //   • Inline (default): vertical 9:16 frame in the scrolling page.
+  //   • Fullscreen: fills the whole screen. We DO NOT force landscape —
+  //     a vertical video should be able to go fullscreen and stay portrait
+  //     (immersive, like a Short). We unlock orientation so the device's
+  //     own rotation sensor leads: the user rotates the phone and the video
+  //     follows. On exit we release the lock and return to the inline frame.
+  // This mirrors YouTube: portrait by default, rotate-to-landscape on demand,
+  // landscape-back-to-portrait when the user rotates back.
+  const playerWrapRef = useRef(null);
+  const [isFs, setIsFs] = useState(false);
+
+  useEffect(()=>{
+    const onFsChange = () => {
+      const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFs(active);
+      const o = window.screen && window.screen.orientation;
+      if(active){
+        // Allow free rotation in fullscreen — do NOT pin to one orientation.
+        // (Some Android WebViews default to a locked sensor; explicitly unlock.)
+        if(o && o.unlock){ try{ o.unlock(); }catch(e){} }
+      } else {
+        if(o && o.unlock){ try{ o.unlock(); }catch(e){} }
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return ()=>{
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+    };
+  },[]);
+
+  // Explicit fullscreen toggle — more reliable than relying only on the
+  // native <video> control, and consistent across the Android TWA and desktop.
+  const toggleFullscreen = () => {
+    const el = playerWrapRef.current;
+    if(!el) return;
+    const inFs = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!inFs){
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
+      if(req){ try{ req.call(el); }catch(e){} }
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit){ try{ exit.call(document); }catch(e){} }
+    }
+  };
+
+  // ─── VIDEO PLAYER: reset loading state when the video changes ───
+  const lastSavedTimeRef = useRef(0);
+  useEffect(()=>{
+    setVideoStatus("loading");
+    lastSavedTimeRef.current = 0;
+  },[scenario?.videoUrl_en, scenario?.videoUrl_hi, lang, screen]);
+
+  const markW = (id) => {
+    if(watched.has(id)) return; // already counted, avoid double XP/streak on replay
+    const next = new Set([...watched, id]);
+    setWatched(next);
+
+    // ── Streak update ──
+    const today = todayStr();
+    let newStreak;
+    if(lastWatchDate === today) newStreak = streak || 1;
+    else if(lastWatchDate === yesterdayStr()) newStreak = (streak||0) + 1;
+    else newStreak = 1;
+    setStreak(newStreak);
+    setLastWatchDate(today);
+
+    // ── Persist for logged-in users ──
+    if(fb && fb.auth.currentUser){
+      const ref = fb.doc(fb.db,"users",fb.auth.currentUser.uid);
+      fb.setDoc(ref, {watchedScenarios:[...next], streak:newStreak, lastWatchDate:today}, {merge:true}).catch(e=>console.error("Failed to save progress:",e));
+    }
+  };
+
+  const toggleBookmark = (id) => {
+    const next = new Set(bookmarks);
+    if(next.has(id)) next.delete(id); else next.add(id);
+    setBookmarks(next);
+    if(fb && fb.auth.currentUser){
+      const ref = fb.doc(fb.db,"users",fb.auth.currentUser.uid);
+      fb.setDoc(ref, {bookmarks:[...next]}, {merge:true}).catch(e=>console.error("Failed to save bookmark:",e));
+    }
+  };
 
   // ─── FIREBASE AUTH LISTENER ───
   useEffect(()=>{
@@ -260,7 +471,17 @@ export default function App() {
           setUserName(user.displayName||"");
           const userRef = fb.doc(fb.db,"users",user.uid);
           const snap = await fb.getDoc(userRef);
-          if(snap.exists() && snap.data().isPremium) setPremium(true);
+          if(snap.exists()){
+            const data = snap.data();
+            if(data.isPremium) setPremium(true);
+            if(Array.isArray(data.watchedScenarios)) setWatched(new Set(data.watchedScenarios));
+            if(Array.isArray(data.bookmarks)) setBookmarks(new Set(data.bookmarks));
+            if(data.watchProgress) setVideoProgress(data.watchProgress);
+            setStreak(data.streak||0);
+            setLastWatchDate(data.lastWatchDate||null);
+          } else {
+            await fb.setDoc(userRef, {email:user.email, name:user.displayName||"", createdAt:new Date().toISOString(), watchedScenarios:[], bookmarks:[], watchProgress:{}, streak:0, lastWatchDate:null}, {merge:true});
+          }
         } else {
           setLoggedIn(false);
         }
@@ -272,7 +493,7 @@ export default function App() {
   },[]);
 
   // ─── SIGN OUT ───
-  const handleSignOut = async ()=>{ if(fb) await fb.signOut(fb.auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); };
+  const handleSignOut = async ()=>{ if(fb) await fb.signOut(fb.auth); setLoggedIn(false); setPremium(false); setUserEmail(""); setUserName(""); setWatched(new Set()); setStreak(0); setLastWatchDate(null); setBookmarks(new Set()); setVideoProgress({}); };
 
   const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : EVENTS;
 
@@ -333,6 +554,74 @@ export default function App() {
     } catch(e){ setPaymentError(e.message||"Something went wrong. Please try again."); setPaymentLoading(false); }
   };
 
+  // ─── PLAY BILLING CHECKOUT ──────────────────────────────────────────
+  // Called only inside TWA. Uses Digital Goods API + PaymentRequest API.
+  // Google shows its own native billing bottom-sheet — we never see card data.
+  const initiatePlayPurchase = async () => {
+    if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }
+    setPaymentLoading(true); setPaymentError("");
+    try {
+      // Get the Digital Goods service (only available in TWA)
+      const service = await window.getDigitalGoodsService("https://play.google.com/billing");
+      const productId = PLAY_PRODUCT_IDS[selectedPlan];
+
+      // Fetch item details from Play Console (price, title, etc.)
+      const details = await service.getDetails([productId]);
+      if(!details || details.length === 0){
+        throw new Error("Product not found in Play Console. Ensure kaash_monthly / kaash_yearly are created and active.");
+      }
+      const item = details[0];
+
+      // PaymentRequest triggers the native Play Billing bottom-sheet
+      const request = new PaymentRequest(
+        [{ supportedMethods:"https://play.google.com/billing", data:{ sku: item.itemId } }],
+        { total:{ label: item.title || "KAASH Subscription", amount: item.price } }
+      );
+
+      const paymentResult = await request.show();
+      const { purchaseToken } = paymentResult.details;
+
+      // Send to our server for verification + Firestore update
+      const res = await fetch("/api/verify-play-purchase", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          purchaseToken,
+          productId,
+          userId: fb.auth.currentUser.uid,
+          userEmail: fb.auth.currentUser.email || userEmail,
+          reVerify: false,
+        }),
+      });
+      const data = await res.json();
+      if(!data.success) throw new Error(data.error || "Purchase verification failed");
+
+      // Acknowledge must happen within 3 days or Google auto-refunds
+      // Our server does the acknowledgement — confirm it succeeded
+      await paymentResult.complete("success");
+
+      // Store token locally for re-verification on future app opens
+      localStorage.setItem("kaash_play_token", purchaseToken);
+      localStorage.setItem("kaash_play_product", productId);
+      setPlayToken(purchaseToken);
+      setPremium(true); setPaywall(false); setPaymentLoading(false);
+    } catch(e){
+      // User cancelled the billing dialog — treat as non-error
+      if(e.name === "AbortError" || e.message?.includes("cancelled")){
+        setPaymentLoading(false); return;
+      }
+      setPaymentError(e.message || "Purchase failed. Please try again.");
+      setPaymentLoading(false);
+    }
+  };
+
+  // ─── UNIFIED PAYMENT ROUTER ─────────────────────────────────────────
+  // Routes to Play Billing (TWA) or Razorpay (web) based on platform.
+  const initiateSubscription = () => {
+    if(isTWA) initiatePlayPurchase();
+    else initiatePayment();
+  };
+
   const getNextScenario = () => {
     if(!event||!scenario) return {sc:null,ev:null};
     const idx = event.scenarios.findIndex(s=>s.num===scenario.num);
@@ -356,6 +645,41 @@ export default function App() {
   };
 
   // ─── ONBOARDING ───
+  // ─── AGE GATE ─────────────────────────────────────────────────────────
+  // Required by DPDP Act 2023 (Section 9) and Google Play policy.
+  // Must gate before collecting ANY data (including Google auth session).
+  // localStorage flag: kaash_age_verified
+  if (screen==="agegate") {
+    return (
+      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.08) 0%, ${C.bg} 70%)`}}>
+        <KaashMark size={44}/>
+        <div style={{marginTop:20,marginBottom:4,fontSize:28,fontWeight:900,letterSpacing:4,color:C.text,textAlign:"center"}}>KAASH</div>
+        <div style={{fontSize:11,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginBottom:40}}>कaश · ALTERNATE HISTORY</div>
+        <div style={{width:"100%",background:C.card,borderRadius:14,padding:"24px 20px",border:`1px solid ${C.border}`,boxShadow:C.shadowLg,marginBottom:24}}>
+          <div style={{fontSize:13,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12,textAlign:"center"}}>AGE VERIFICATION</div>
+          <div style={{fontSize:14,color:C.text,textAlign:"center",lineHeight:1.7,marginBottom:20}}>KAASH explores alternate history including war, conflict, and geopolitical events. This content is suitable for ages <strong>13 and above</strong>.</div>
+          <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:20,textAlign:"center"}}>
+            By continuing, you confirm you are <strong>13 years of age or older</strong>. If you are between 13–17, a parent or guardian has consented to your use of this app.
+          </div>
+          <button onClick={()=>{ localStorage.setItem("kaash_age_verified","1"); if(!localStorage.getItem("kaash_onboarded")) setScreen("onboard"); else setScreen("home"); }}
+            style={{width:"100%",padding:"14px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>
+            I AM 13 OR OLDER — CONTINUE
+          </button>
+          <button onClick={()=>{ window.location.href="https://www.google.com"; }}
+            style={{width:"100%",padding:"12px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textMuted,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"sans-serif"}}>
+            I am under 13 — Exit
+          </button>
+        </div>
+        <div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6}}>
+          By continuing you agree to our{" "}
+          <a href="/terms" target="_blank" rel="noopener" style={{color:C.accentLight}}>Terms of Service</a>
+          {" "}and{" "}
+          <a href="/privacy" target="_blank" rel="noopener" style={{color:C.accentLight}}>Privacy Policy</a>
+        </div>
+      </div>
+    );
+  }
+
   if (screen==="onboard") {
     const slides=[
       {title:"कaश",sub:"What If History Went Differently?",body:"Every turning point in history balanced on a razor's edge. One moment different — the entire world changes.",emoji:"⚡"},
@@ -365,7 +689,7 @@ export default function App() {
     const sl=slides[slide];
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 50% 30%, rgba(232,184,75,0.1) 0%, ${C.bg} 70%)`}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.1) 0%, ${C.bg} 70%)`}}>
           <div style={{fontSize:72,marginBottom:24}}>{sl.emoji}</div>
           <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.accent,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
           <div style={{fontSize:13,color:C.accent2,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
@@ -378,6 +702,7 @@ export default function App() {
           {slide>0&&<button onClick={()=>setSlide(p=>p-1)} style={{flex:1,padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,cursor:"pointer",fontFamily:"sans-serif",fontSize:14}}>Back</button>}
           <button onClick={async ()=>{
             if(slide<2){ setSlide(p=>p+1); return; }
+            localStorage.setItem("kaash_onboarded","1");
             setScreen("home");
             if(loggedIn && fb && fb.auth.currentUser){
               try{ await fb.setDoc(fb.doc(fb.db,"users",fb.auth.currentUser.uid),{hasSeenOnboard:true},{merge:true}); }catch(e){}
@@ -396,7 +721,7 @@ export default function App() {
       scenario={upNextScenario} event={upNextEvent} countdown={upNextCount}
       setCountdown={setUpNextCount}
       onPlay={()=>{ if(watchCount>=2 && !loggedIn){ setPendingWatch({sc:upNextScenario, ev:upNextEvent}); setScreen("login"); return; } setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
-      onSkip={()=>setScreen("home")}
+      onSkip={()=>{setTab("home");setScreen("home");}}
     />;
   }
 
@@ -404,7 +729,7 @@ export default function App() {
   if (screen==="login") {
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(232,184,75,0.1) 0%, ${C.bg} 70%)`}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.1) 0%, ${C.bg} 70%)`}}>
           <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.accent,marginBottom:6}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
@@ -420,7 +745,7 @@ export default function App() {
                 setUserName(user.displayName||"");
                 const userRef = f.doc(f.db,"users",user.uid);
                 const snap = await f.getDoc(userRef);
-                const seen = snap.exists() && snap.data().hasSeenOnboard;
+                const seen = (snap.exists() && snap.data().hasSeenOnboard) || localStorage.getItem("kaash_onboarded")==="1";
                 await f.setDoc(userRef,{email:user.email,name:user.displayName||"",lastSeen:new Date().toISOString(),signedUpAt:snap.exists()?snap.data().signedUpAt:new Date().toISOString()},{merge:true});
                 if(snap.exists() && snap.data().isPremium) setPremium(true);
                 const isPrem = snap.exists() && snap.data().isPremium;
@@ -454,54 +779,79 @@ export default function App() {
     );
   }
 
-  if (screen==="ad") return <AdScreen onDone={()=>setScreen("disclaimer")} onUpgrade={()=>setPaywall(true)} />;
+  if (screen==="ad") return <AdScreen isTWA={isTWA} onDone={()=>setScreen("disclaimer")} onUpgrade={()=>setPaywall(true)} />;
   if (screen==="disclaimer") return <DisclaimerScreen onDone={()=>{ setWatchCount(c=>c+1); setScreen("player"); }} />;
 
   // ─── PAYWALL ───
   if (paywall) {
+    const plan = KAASH_PLANS[selectedPlan];
+    const ctaLabel = isTWA
+      ? `SUBSCRIBE VIA GOOGLE PLAY — ₹${plan.amount}/mo`
+      : `PAY ₹${plan.total} (incl. GST) →`;
     return (
       <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:`linear-gradient(180deg,rgba(232,184,75,0.15),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{background:`linear-gradient(180deg,rgba(74,127,232,0.15),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
           <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
           <div style={{fontSize:36,marginBottom:8}}>✦</div>
           <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:C.accent}}>GO AD-FREE</div>
-          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>One price. No ads. Full access. Cancel anytime.</div>
+          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>
+            {isTWA ? "Billed via Google Play. Cancel anytime in Play Store." : "One price. No ads. Full access."}
+          </div>
         </div>
         <div style={{padding:"0 20px 24px"}}>
           <div style={{marginBottom:14}}>
-            {Object.entries(KAASH_PLANS).map(([planKey,plan])=>(
+            {Object.entries(KAASH_PLANS).map(([planKey,p])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
-                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative"}}>
+                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 20px rgba(74,127,232,0.25)":C.shadow}}>
                 {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.accent,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
-                    <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",marginBottom:2}}>{plan.label}</div>
-                    {plan.savingNote&&<div style={{fontSize:11,color:C.green,fontFamily:"sans-serif"}}>{plan.savingNote}</div>}
+                    <div style={{fontSize:14,fontWeight:700,fontFamily:"sans-serif",marginBottom:2}}>{p.label}</div>
+                    {p.savingNote&&<div style={{fontSize:11,color:C.green,fontFamily:"sans-serif"}}>{p.savingNote}</div>}
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===planKey?C.accent:C.text,fontFamily:"sans-serif"}}>₹{plan.amount}</div>
-                    {plan.perMonth&&planKey==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{plan.perMonth}/month</div>}
+                    <div style={{fontSize:24,fontWeight:900,color:selectedPlan===planKey?C.accent:C.text,fontFamily:"sans-serif"}}>₹{p.amount}</div>
+                    {!isTWA && <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif"}}>+ ₹{p.gst} GST = ₹{p.total}</div>}
+                    {planKey==="yearly"&&<div style={{fontSize:10,color:C.green,fontFamily:"sans-serif"}}>₹{p.perMonth}/month</div>}
                   </div>
                 </div>
                 {selectedPlan===planKey&&<CheckCircle size={14} color={C.accent} style={{position:"absolute",top:16,right:16}}/>}
               </div>
             ))}
           </div>
-          <div style={{background:C.surface,borderRadius:8,padding:"10px 12px",marginBottom:12,fontSize:11,color:C.textMuted,fontFamily:"sans-serif",lineHeight:1.6}}>
-            Final price. No hidden charges. Cancel anytime.
-          </div>
+
+          {/* GST breakdown box (web only) */}
+          {!isTWA && (
+            <div style={{background:C.surface,borderRadius:8,padding:"10px 14px",marginBottom:12,fontFamily:"sans-serif",fontSize:11,color:C.textMuted,lineHeight:1.8}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span>Base price</span><span style={{color:C.text}}>₹{plan.amount}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span>GST (18% · HSN 9984)</span><span style={{color:C.text}}>₹{plan.gst}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",borderTop:`1px solid ${C.border}`,paddingTop:6,marginTop:4,fontWeight:700,color:C.text}}><span>Total charged</span><span>₹{plan.total}</span></div>
+            </div>
+          )}
+
           {["🚫 Zero ads — ever","🎬 All timelines on all events","🌐 English + Hindi narration","⚡ New events every week"].map((f,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,fontSize:13,color:C.text,fontFamily:"sans-serif"}}>
               <span>{f}</span>
             </div>
           ))}
-          {paymentError&&<div style={{background:"rgba(199,93,74,0.14)",border:"1px solid rgba(199,93,74,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
-          <button onClick={initiatePayment} disabled={paymentLoading}
+
+          {paymentError&&<div style={{background:"rgba(224,99,90,0.14)",border:"1px solid rgba(224,99,90,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
+
+          <button onClick={initiateSubscription} disabled={paymentLoading}
             style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.accent,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
-            {paymentLoading?"OPENING PAYMENT...":"SUBSCRIBE — ₹"+KAASH_PLANS[selectedPlan].amount.toFixed(2)+"/"+KAASH_PLANS[selectedPlan].label.toLowerCase()}
+            {paymentLoading ? "OPENING PAYMENT..." : ctaLabel}
           </button>
-          <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.5}}>
-            Secure payment via Razorpay · UPI · Cards · Net Banking<br/>Cancel anytime · No hidden fees
+
+          <div style={{textAlign:"center",fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:10,lineHeight:1.6}}>
+            {isTWA
+              ? "Subscriptions managed via Google Play · Cancel anytime in Play Store settings"
+              : "Secure payment via Razorpay · UPI · Cards · Net Banking · Wallets"}
+            <br/>
+            <a href="/terms" target="_blank" rel="noopener" style={{color:C.accentLight}}>Terms</a>
+            {" · "}
+            <a href="/privacy" target="_blank" rel="noopener" style={{color:C.accentLight}}>Privacy Policy</a>
+            {" · "}
+            {!isTWA && <a href="mailto:support@kaash.app" style={{color:C.accentLight}}>Refund Policy</a>}
           </div>
           <div style={{height:24}}/>
         </div>
@@ -515,34 +865,151 @@ export default function App() {
   // button did nothing, and handleSignOut (defined above) was never
   // reachable from any UI element. This screen fixes both.
   if (settingsPage==="menu") {
+    const handleDeleteAccount = async () => {
+      if(!loggedIn || !fb || !fb.auth.currentUser) return;
+      setDeleting(true); setDeleteError("");
+      try {
+        const uid = fb.auth.currentUser.uid;
+        // Delete user doc (watch history, bookmarks, progress, streak)
+        // Payment records kept 8 years per Indian taxation law (handled by admin separately)
+        await fb.setDoc(fb.doc(fb.db,"users",uid), {
+          email:"[DELETED]", name:"[DELETED]", watchedScenarios:[], bookmarks:[],
+          watchProgress:{}, streak:0, lastWatchDate:null, deletedAt:new Date().toISOString()
+        },{merge:false});
+        // Clear localStorage flags
+        localStorage.removeItem("kaash_onboarded");
+        localStorage.removeItem("kaash_terms");
+        localStorage.removeItem("kaash_age_verified");
+        await handleSignOut();
+        setSettingsPage(null); setTab("home"); setScreen("agegate");
+      } catch(e) {
+        setDeleteError("Deletion failed: "+e.message+". Email privacy@kaash.app to complete manually.");
+        setDeleting(false);
+      }
+    };
+
     return (
       <div style={{...s,overflowY:"auto"}}>
         <div style={{padding:"44px 20px 16px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
-          <button onClick={()=>setSettingsPage(null)} style={{background:"transparent",border:"none",cursor:"pointer",display:"flex",padding:0}}><ArrowLeft size={20} color={C.text}/></button>
+          <button onClick={()=>{setSettingsPage(null);setDeleteConfirm(false);setDeleteError("");}} style={{background:"transparent",border:"none",cursor:"pointer",display:"flex",padding:0}}><ArrowLeft size={20} color={C.text}/></button>
           <span style={{fontSize:16,fontWeight:900,letterSpacing:1}}>Settings</span>
         </div>
         <div style={{padding:"20px"}}>
+
+          {/* ACCOUNT */}
           {loggedIn && (
             <div style={{marginBottom:24}}>
               <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ACCOUNT</div>
-              <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,marginBottom:10}}>
+              <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,marginBottom:10,boxShadow:C.shadow}}>
                 <div style={{fontSize:13,fontWeight:700,fontFamily:"sans-serif"}}>{userName||"Signed in"}</div>
                 <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginTop:2}}>{userEmail}</div>
+                {premium && <div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginTop:6}}>✦ PREMIUM MEMBER</div>}
               </div>
               <button onClick={async ()=>{ await handleSignOut(); setSettingsPage(null); setTab("home"); setScreen("home"); }}
-                style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700}}>Sign Out</button>
+                style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700,marginBottom:8}}>Sign Out</button>
             </div>
           )}
+
+          {/* SUBSCRIPTION */}
+          {premium && (
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>SUBSCRIPTION</div>
+              <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,boxShadow:C.shadow,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7,marginBottom:10}}>
+                <div style={{color:C.green,fontWeight:700,marginBottom:4}}>✓ Premium Active</div>
+                {isTWA
+                  ? "Your subscription auto-renews via Google Play. To cancel, manage via Play Store."
+                  : "Your plan does not auto-renew. No further charges will be made without your action. For refund queries: support@kaash.app"}
+              </div>
+              {isTWA && (
+                <a href="https://play.google.com/store/account/subscriptions?package=app.kaash.android"
+                  target="_blank" rel="noopener"
+                  style={{display:"block",width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.textSec,fontFamily:"sans-serif",fontSize:12,textAlign:"center",textDecoration:"none"}}>
+                  Manage / Cancel on Google Play →
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* PRIVACY & YOUR RIGHTS */}
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>PRIVACY &amp; YOUR RIGHTS</div>
+            <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,boxShadow:C.shadow,marginBottom:10,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
+              <div style={{color:C.text,fontWeight:700,marginBottom:8}}>Data we hold about you:</div>
+              <ul style={{paddingLeft:16,margin:0}}>
+                <li>Email address and display name (from Google Sign-In)</li>
+                <li>Watch history, streak, XP, and bookmarks</li>
+                <li>Video resume positions</li>
+                <li>Content suggestions you submitted</li>
+                <li>Payment records (retained 8 years by law)</li>
+              </ul>
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                We never sell your data. <a href="/privacy" target="_blank" rel="noopener" style={{color:C.accentLight}}>Full Privacy Policy →</a>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <a href="mailto:privacy@kaash.app?subject=Data Access Request" style={{display:"block",padding:"12px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:12,fontFamily:"sans-serif",textDecoration:"none"}}>
+                📋 Request a copy of my data
+              </a>
+              <a href="mailto:privacy@kaash.app?subject=Data Correction Request" style={{display:"block",padding:"12px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:12,fontFamily:"sans-serif",textDecoration:"none"}}>
+                ✏️ Correct my data
+              </a>
+            </div>
+          </div>
+
+          {/* DELETE ACCOUNT */}
+          {loggedIn && (
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>DELETE MY ACCOUNT &amp; DATA</div>
+              {!deleteConfirm ? (
+                <div>
+                  <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,marginBottom:10,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
+                    Permanently deletes your watch history, streak, bookmarks, and account. Payment records are retained for 8 years as required by Indian taxation law. This cannot be undone.
+                  </div>
+                  <button onClick={()=>setDeleteConfirm(true)}
+                    style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.red}`,borderRadius:10,color:C.red,cursor:"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700}}>
+                    Delete My Account &amp; Data
+                  </button>
+                </div>
+              ) : (
+                <div style={{background:C.card,borderRadius:10,padding:"16px",border:`2px solid ${C.red}`,boxShadow:`0 4px 20px rgba(224,99,90,0.2)`}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.red,marginBottom:8}}>Are you sure?</div>
+                  <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:16}}>
+                    This will permanently delete your account ({userEmail}), watch history, bookmarks, and streak. Payment records are kept for legal compliance.
+                  </div>
+                  {deleteError && <div style={{fontSize:12,color:C.red,fontFamily:"sans-serif",marginBottom:12,lineHeight:1.5}}>{deleteError}</div>}
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"12px 0",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.textSec,cursor:"pointer",fontFamily:"sans-serif",fontSize:13}}>Cancel</button>
+                    <button onClick={handleDeleteAccount} disabled={deleting}
+                      style={{flex:1,padding:"12px 0",background:C.red,border:"none",borderRadius:8,color:"#fff",cursor:deleting?"not-allowed":"pointer",fontFamily:"sans-serif",fontSize:13,fontWeight:700,opacity:deleting?0.7:1}}>
+                      {deleting?"Deleting...":"Yes, Delete"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LEGAL */}
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>LEGAL</div>
+            <div style={{display:"flex",flexDirection:"column",gap:1,borderRadius:10,overflow:"hidden",border:`1px solid ${C.border}`}}>
+              <a href="/privacy" target="_blank" rel="noopener" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",background:C.card,color:C.text,fontSize:13,fontFamily:"sans-serif",textDecoration:"none",borderBottom:`1px solid ${C.border}`}}>
+                <span>Privacy Policy</span><span style={{color:C.textMuted,fontSize:12}}>→</span>
+              </a>
+              <a href="/terms" target="_blank" rel="noopener" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",background:C.card,color:C.text,fontSize:13,fontFamily:"sans-serif",textDecoration:"none",borderBottom:`1px solid ${C.border}`}}>
+                <span>Terms of Service</span><span style={{color:C.textMuted,fontSize:12}}>→</span>
+              </a>
+              <a href="mailto:grievance@kaash.app" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",background:C.card,color:C.text,fontSize:13,fontFamily:"sans-serif",textDecoration:"none"}}>
+                <span>Grievance Officer</span><span style={{color:C.textMuted,fontSize:12}}>→</span>
+              </a>
+            </div>
+          </div>
+
+          {/* ABOUT */}
           <div style={{marginBottom:24}}>
             <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>ABOUT</div>
             <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
-              KAASH — Alternate History. All content is speculative fiction, created for educational entertainment.
-            </div>
-          </div>
-          <div style={{marginBottom:24}}>
-            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>YOUR DATA</div>
-            <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,fontSize:12,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.7}}>
-              To request deletion of your account and watch history, email <span style={{color:C.accent}}>support@kaash.app</span>.
+              KAASH — Alternate History. All content is speculative fiction for educational entertainment. Version 1.10.
             </div>
           </div>
         </div>
@@ -552,31 +1019,101 @@ export default function App() {
 
   // ─── VIDEO PLAYER ───
   if (screen==="player"&&scenario&&event) {
+    const sId = event.id+"_"+scenario.num;
+    const videoUrl = lang==="HI" ? (scenario.videoUrl_hi||scenario.videoUrl_en) : (scenario.videoUrl_en||scenario.videoUrl_hi);
+    const hasBothLangs = !!(scenario.videoUrl_en && scenario.videoUrl_hi);
+    const isBookmarked = bookmarks.has(sId);
+
+    const saveProgress = (seconds) => {
+      setVideoProgress(p=>({...p,[sId]:seconds}));
+      if(fb && fb.auth.currentUser){
+        const ref = fb.doc(fb.db,"users",fb.auth.currentUser.uid);
+        fb.setDoc(ref, {[`watchProgress.${sId}`]: seconds}, {merge:true}).catch(()=>{});
+      }
+    };
+
+    const onVideoEnded = () => {
+      saveProgress(0);
+      markW(sId);
+      triggerUpNext();
+    };
+
+    const shareOnWhatsApp = () => {
+      const msg = `"${scenario.title}" — ${scenario.tagline}\n\nExplore this alternate history timeline on KAASH: https://kaash-app.vercel.app`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");
+    };
+
     return (
       <div style={{...s,overflowY:"auto"}} onContextMenu={(e)=>e.preventDefault()}>
-        <div style={{width:"100%",aspectRatio:"16/9",background:event.grad,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",minHeight:200,userSelect:"none"}}>
-          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-            <div style={{width:56,height:56,borderRadius:"50%",background:`${C.accent}ee`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Play size={26} color={C.bg} style={{marginLeft:3}}/></div>
-            <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary</div>
-          </div>
-          <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
-          <div style={{position:"absolute",bottom:10,left:54,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",pointerEvents:"none"}}>KAASH</div>
-          <button onClick={()=>setScreen("detail")} style={{position:"absolute",top:44,left:12,background:"rgba(0,0,0,0.6)",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ArrowLeft size={18} color="#fff"/></button>
-          <div style={{position:"absolute",bottom:10,right:16,fontSize:10,color:C.accent,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>TIMELINE {scenario.num} / 5</div>
-          <div style={{position:"absolute",top:44,right:12,display:"flex",background:"rgba(0,0,0,0.6)",borderRadius:8,overflow:"hidden"}}>
-            {["EN","HI"].map(L=>(
-              <button key={L} onClick={()=>setLang(L)} style={{padding:"6px 11px",background:lang===L?C.accent:"transparent",border:"none",color:lang===L?C.bg:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{L}</button>
-            ))}
-          </div>
+        <style>{`@keyframes kaashSpin{to{transform:rotate(360deg)}}`}</style>
+        <div ref={playerWrapRef} style={isFs
+          ? {width:"100vw",height:"100vh",background:"#000",position:"relative",userSelect:"none",display:"flex",alignItems:"center",justifyContent:"center"}
+          : {width:"100%",aspectRatio:"9/16",maxHeight:"68vh",background:"#000",position:"relative",minHeight:200,userSelect:"none",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {videoUrl ? (
+            <>
+              <video
+                key={videoUrl}
+                src={videoUrl}
+                controls
+                playsInline
+                style={{width:"100%",height:"100%",display:"block",background:"#000",objectFit:"contain"}}
+                onLoadedData={()=>setVideoStatus("ready")}
+                onError={()=>setVideoStatus("error")}
+                onLoadedMetadata={(e)=>{ const saved=videoProgress[sId]; if(saved && saved>5 && saved<e.target.duration-10) e.target.currentTime=saved; }}
+                onTimeUpdate={(e)=>{ const t=e.target.currentTime; if(Math.abs(t-lastSavedTimeRef.current)>=10){ lastSavedTimeRef.current=t; if(fb && fb.auth.currentUser){ const ref=fb.doc(fb.db,"users",fb.auth.currentUser.uid); fb.setDoc(ref,{[`watchProgress.${sId}`]:t},{merge:true}).catch(()=>{}); } } }}
+                onPause={(e)=>{ if(!e.target.ended) saveProgress(e.target.currentTime); }}
+                onEnded={onVideoEnded}
+              />
+              {videoStatus==="loading" && (
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.4)",pointerEvents:"none"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",border:`3px solid ${C.border}`,borderTopColor:C.accent,animation:"kaashSpin 0.8s linear infinite"}}/>
+                </div>
+              )}
+              {videoStatus==="error" && (
+                <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",gap:6,padding:20,textAlign:"center",pointerEvents:"none"}}>
+                  <div style={{fontSize:13,color:C.text,fontFamily:"sans-serif",fontWeight:700}}>Couldn't load this video</div>
+                  <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif"}}>Check your connection and try again.</div>
+                </div>
+              )}
+              <div style={{position:"absolute",top:"38%",right:16,fontSize:13,color:"rgba(255,255,255,0.18)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
+              <div style={{position:"absolute",top:"38%",left:16,fontSize:13,color:"rgba(255,255,255,0.18)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
+              {loggedIn && userEmail && (
+                <div style={{position:"absolute",top:"65%",left:"50%",transform:"translate(-50%,-50%) rotate(-12deg)",fontSize:10,color:"rgba(255,255,255,0.07)",fontFamily:"sans-serif",letterSpacing:1,whiteSpace:"nowrap",pointerEvents:"none"}}>{userEmail}</div>
+              )}
+            </>
+          ) : (
+            <div style={{position:"absolute",inset:0,background:event.grad}}>
+              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <div style={{width:56,height:56,borderRadius:"50%",background:`${C.accent}ee`,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={26} color={C.bg} style={{marginLeft:3}}/></div>
+                <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary — coming soon</div>
+              </div>
+              <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
+              <div style={{position:"absolute",bottom:10,left:54,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",pointerEvents:"none"}}>KAASH</div>
+            </div>
+          )}
+          <button onClick={toggleFullscreen} aria-label={isFs?"Exit fullscreen":"Fullscreen"} style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3}}>{isFs?<Minimize size={17} color="#fff"/>:<Maximize size={17} color="#fff"/>}</button>
+          <button onClick={()=>setScreen("detail")} style={{position:"absolute",top:10,left:10,background:"rgba(0,0,0,0.6)",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}><ArrowLeft size={18} color="#fff"/></button>
+          {hasBothLangs && (
+            <div style={{position:"absolute",top:10,right:10,display:"flex",background:"rgba(0,0,0,0.6)",borderRadius:8,overflow:"hidden",zIndex:2}}>
+              {["EN","HI"].map(L=>(
+                <button key={L} onClick={()=>setLang(L)} style={{padding:"6px 11px",background:lang===L?C.accent:"transparent",border:"none",color:lang===L?C.bg:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{L}</button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{padding:"16px 20px 0"}}>
-          <div style={{fontSize:10,color:C.accent,letterSpacing:1,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>{event.short}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+            <div style={{fontSize:10,color:C.accent,letterSpacing:1,fontFamily:"sans-serif",fontWeight:700}}>{event.short}</div>
+            <div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1,flexShrink:0,marginLeft:8}}>TIMELINE {scenario.num} / 5</div>
+          </div>
           <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:4}}>{scenario.title}</div>
           <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:10}}>"{scenario.tagline}"</div>
-          <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-            <span style={{fontSize:10,color:C.accent,background:C.accentBg,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif",fontWeight:700}}>🔊 {lang==="EN"?"English":"हिंदी"} Narration</span>
-            <span style={{fontSize:10,color:C.textSec,background:C.surface,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif"}}>CC {lang==="EN"?"English":"Hindi"} Subtitles</span>
-          </div>
+          {!hasBothLangs && (
+            <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+              <span style={{fontSize:10,color:C.accent,background:C.accentBg,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif",fontWeight:700}}>🔊 {lang==="EN"?"English":"हिंदी"} Narration</span>
+              <span style={{fontSize:10,color:C.textSec,background:C.surface,borderRadius:4,padding:"4px 9px",fontFamily:"sans-serif"}}>CC {lang==="EN"?"English":"Hindi"} Subtitles</span>
+            </div>
+          )}
           <div style={{height:1,background:C.border,marginBottom:16}}/>
           {[
             {label:"THE ALTERNATE HISTORY",key:"n",expanded:expandN,toggle:()=>setExpandN(p=>!p),accent:C.accent,content:<div style={{color:C.textSec,fontSize:13,lineHeight:1.8,fontFamily:"sans-serif"}}>{scenario.narrative.split("\n\n").map((p,i)=><p key={i} style={{marginBottom:12}}>{p}</p>)}</div>},
@@ -590,10 +1127,10 @@ export default function App() {
               {item.expanded&&item.content}
             </div>
           ))}
-          <button onClick={()=>{ const sId=event.id+"_"+scenario.num; markW(sId); triggerUpNext(); }} style={{width:"100%",padding:"13px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>✓ DONE — PLAY NEXT TIMELINE</button>
+          <button onClick={()=>{ markW(sId); triggerUpNext(); }} style={{width:"100%",padding:"13px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>✓ DONE — PLAY NEXT TIMELINE</button>
           <div style={{display:"flex",gap:12,marginBottom:40}}>
-            <button style={{flex:1,padding:"11px 0",border:`1px solid ${C.green}`,borderRadius:10,background:C.greenBg,color:C.green,cursor:"pointer",fontFamily:"sans-serif",fontSize:12,fontWeight:700,letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Share2 size={14}/>SHARE ON WHATSAPP</button>
-            <button style={{padding:"11px 16px",border:`1px solid ${C.border}`,borderRadius:10,background:"transparent",color:C.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Bookmark size={14}/></button>
+            <button onClick={shareOnWhatsApp} style={{flex:1,padding:"11px 0",border:`1px solid ${C.green}`,borderRadius:10,background:C.greenBg,color:C.green,cursor:"pointer",fontFamily:"sans-serif",fontSize:12,fontWeight:700,letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Share2 size={14}/>SHARE ON WHATSAPP</button>
+            <button onClick={()=>toggleBookmark(sId)} style={{padding:"11px 16px",border:`1px solid ${isBookmarked?C.accent:C.border}`,borderRadius:10,background:isBookmarked?C.accentBg:"transparent",color:isBookmarked?C.accent:C.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Bookmark size={14} fill={isBookmarked?C.accent:"none"}/></button>
           </div>
         </div>
       </div>
@@ -621,20 +1158,28 @@ export default function App() {
             <div style={{width:3,height:20,background:C.accent,borderRadius:2}}/>
             <div><div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>5 ALTERNATE TIMELINES</div><div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif"}}>Each one a 5-minute documentary</div></div>
           </div>
-          {event.scenarios.map((sc,i)=>(
-            <div key={i} onClick={()=>attemptWatch(sc,event)} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`}}>
+          {event.scenarios.map((sc,i)=>{
+            const sId = event.id+"_"+sc.num;
+            const isWatched = watched.has(sId);
+            const isBookmarked = bookmarks.has(sId);
+            return (
+            <div key={i} onClick={()=>attemptWatch(sc,event)} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${isWatched?C.accentDark:C.border}`,boxShadow:C.shadow}}>
               <div style={{width:90,minHeight:80,background:event.grad,position:"relative",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{position:"relative",fontSize:28}}>{event.emoji}</span>
+                <span style={{position:"relative",fontSize:28,opacity:isWatched?0.5:1}}>{event.emoji}</span>
                 <div style={{position:"absolute",top:7,left:7,width:22,height:22,background:C.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:11,fontWeight:900,color:C.bg,fontFamily:"sans-serif"}}>{i+1}</span></div>
+                {isBookmarked && <div style={{position:"absolute",top:7,right:7}}><Bookmark size={14} color={C.accent2} fill={C.accent2}/></div>}
               </div>
               <div style={{padding:"11px 12px",flex:1}}>
-                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}><div style={{width:30,height:30,borderRadius:"50%",background:C.accentBg,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={14} color={C.accent} style={{marginLeft:2}}/></div></div>
+                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}>{isWatched
+                  ? <div style={{width:30,height:30,borderRadius:"50%",background:C.greenBg,display:"flex",alignItems:"center",justifyContent:"center"}}><CheckCircle size={14} color={C.green}/></div>
+                  : <div style={{width:30,height:30,borderRadius:"50%",background:C.accentBg,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={14} color={C.accent} style={{marginLeft:2}}/></div>}</div>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:2,lineHeight:1.2}}>{sc.title}</div>
                 <div style={{fontSize:11,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{sc.tagline}</div>
-                <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif"}}><Clock size={10} style={{display:"inline",verticalAlign:"middle"}}/> 5:00 · {sc.ripples.length} ripple effects</div>
+                <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif"}}><Clock size={10} style={{display:"inline",verticalAlign:"middle"}}/> 5:00 · {sc.ripples.length} ripple effects{isWatched?" · Watched":""}</div>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div style={{height:32}}/>
         </div>
       </div>
@@ -654,7 +1199,7 @@ export default function App() {
       <div style={{display:"flex",gap:12,paddingLeft:20,paddingRight:20,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
           <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:130,cursor:"pointer"}}>
-            <div style={{width:130,height:170,background:e.grad,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:8,border:`1px solid ${C.border}`}}>
+            <div style={{width:130,height:170,background:e.grad,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:8,border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
               <span style={{fontSize:44}}>{e.emoji}</span>
               <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 6px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
               <div style={{position:"absolute",top:8,right:8,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:9,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
@@ -666,6 +1211,84 @@ export default function App() {
       </div>
     </div>
   );
+
+  const DesktopRow = ({title,events:evts})=>(
+    <div style={{marginBottom:36}}>
+      <div style={{padding:"0 48px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:18,background:C.accent,borderRadius:2}}/><span style={{fontSize:13,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{title}</span></div>
+      <div style={{display:"flex",gap:16,paddingLeft:48,paddingRight:48,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
+        {evts.map(e=>(
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:240,cursor:"pointer"}}>
+            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:`1px solid ${C.border}`}}>
+              <span style={{fontSize:52}}>{e.emoji}</span>
+              <div style={{position:"absolute",bottom:10,left:10,background:"rgba(0,0,0,0.7)",borderRadius:4,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
+              <div style={{position:"absolute",top:10,right:10,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:4,padding:"3px 7px"}}><span style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,lineHeight:1.3,color:C.text}}>{e.short}</div>
+            <div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif",marginTop:2}}>{e.region}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ─── DESKTOP BROWSE (Netflix-style landing for wide viewports) ───
+  // Renders instead of the phone-frame shell when on Home + desktop width.
+  // Detail/player/other tabs still use the phone-frame, centered on screen —
+  // a full per-screen desktop redesign is a larger follow-on piece of work.
+  const DesktopHome = () => {
+    const featured=ACTIVE_EVENTS[2]||ACTIVE_EVENTS[0];
+    const navLinks=[{id:"explore",label:"Browse"},{id:"new",label:"New"},{id:"search",label:"Search"}];
+    return (
+      <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Georgia,serif"}}>
+        <style>{`
+          .kaash-tile{transition:transform 0.2s ease, box-shadow 0.2s ease;}
+          .kaash-tile:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(74,127,232,0.25);z-index:2;}
+          .kaash-nav-link{transition:color 0.15s ease;}
+          .kaash-nav-link:hover{color:${C.accent} !important;}
+          .kaash-cta{transition:background 0.15s ease, transform 0.15s ease;}
+          .kaash-cta:hover{background:${C.accentLight} !important;transform:translateY(-1px);}
+          .kaash-signin{transition:border-color 0.15s ease, color 0.15s ease;}
+          .kaash-signin:hover{border-color:${C.accent} !important;color:${C.accent} !important;}
+        `}</style>
+        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:`1px solid ${C.border}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <KaashMark size={28}/>
+            <div><span style={{fontSize:20,fontWeight:900,letterSpacing:4,color:C.text}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+          </div>
+          <div style={{display:"flex",gap:24,fontFamily:"sans-serif",fontSize:13}}>
+            <span onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} className="kaash-nav-link" style={{color:C.text,fontWeight:700,cursor:"pointer"}}>Home</span>
+            {navLinks.map(n=><span key={n.id} onClick={()=>setTab(n.id)} className="kaash-nav-link" style={{color:C.textSec,cursor:"pointer"}}>{n.label}</span>)}
+          </div>
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:14}}>
+            {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.accentDark}`}}>AD-FREE</div>}
+            {streak>0 && <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{streak}</span></div>}
+            {loggedIn
+              ? <span onClick={()=>setTab("profile")} className="kaash-nav-link" style={{fontSize:13,fontFamily:"sans-serif",color:C.text,cursor:"pointer",fontWeight:700}}>{userName||"Profile"}</span>
+              : <span onClick={()=>setScreen("login")} className="kaash-signin" style={{fontSize:13,fontFamily:"sans-serif",color:C.text,cursor:"pointer",border:`1px solid ${C.border}`,padding:"6px 16px",borderRadius:6}}>Sign in</span>}
+          </div>
+        </div>
+
+        <div style={{height:420,position:"relative",overflow:"hidden",background:featured.grad,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 48px 40px"}}>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(10,14,20,0.3),transparent,${C.bg})`}}/>
+          <div style={{position:"relative",maxWidth:560}}>
+            <div style={{fontSize:11,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>★ TIMELINE OF THE WEEK</div>
+            <div style={{fontSize:42,fontWeight:900,lineHeight:1.15,marginBottom:10}}>{featured.title}</div>
+            <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginBottom:6}}>{featured.year} · {featured.region}</div>
+            <div style={{fontSize:14,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:24}}>{featured.desc}</div>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>EXPLORE 5 TIMELINES →</button>
+          </div>
+        </div>
+
+        <div style={{padding:"32px 0 40px"}}>
+          <DesktopRow title="INDIA'S ALTERNATE HISTORY" events={ACTIVE_EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
+          <DesktopRow title="WORLD WARS & CONFLICTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="wars")}/>
+          <DesktopRow title="SCIENTIFIC TURNING POINTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="science"||e.id==="moon")}/>
+          <DesktopRow title="ANCIENT WORLD" events={ACTIVE_EVENTS.filter(e=>e.cat==="ancient")}/>
+          <DesktopRow title="ALL EVENTS" events={ACTIVE_EVENTS}/>
+        </div>
+      </div>
+    );
+  };
 
   const HomeTab=()=>{
     const featured=ACTIVE_EVENTS[2]||ACTIVE_EVENTS[0];
@@ -700,7 +1323,7 @@ export default function App() {
       </div>
       <div style={{padding:"0 16px"}}>
         {filtered.map(e=>(
-          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`}}>
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
             <div style={{width:100,minHeight:90,background:e.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}><span style={{fontSize:32}}>{e.emoji}</span><div style={{position:"absolute",bottom:7,left:7,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div></div>
             <div style={{padding:"12px 12px",flex:1}}><div style={{fontSize:9,color:C.accent,background:C.accentBg,borderRadius:3,padding:"2px 6px",display:"inline-block",marginBottom:6,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>{e.era}</div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{e.desc.substring(0,60)}...</div><div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>⑂ 5 alternate timelines · {e.region}</div></div>
           </div>
@@ -741,7 +1364,7 @@ export default function App() {
         </div>
       </div>}
       {filtered.map(e=>(
-        <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:10,marginBottom:8,padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"center",border:`1px solid ${C.border}`}}>
+        <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:10,marginBottom:8,padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"center",border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
           <span style={{fontSize:28,flexShrink:0}}>{e.emoji}</span>
           <div style={{flex:1}}>
             <div style={{fontSize:13,fontWeight:700,lineHeight:1.3}}>{e.title}</div>
@@ -783,8 +1406,10 @@ export default function App() {
             <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>New drop every Tuesday</div>
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>New alternate history events are added every week. Check back on Tuesday for the latest timelines.</div>
           </div>
-        ) : newEvents.map((e,i)=>(
-          <div key={e.id||i} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:12,overflow:"hidden",cursor:"pointer",border:`1px solid ${C.border}`}}>
+        ) : newEvents.map((e,i)=>{
+          const full = ACTIVE_EVENTS.find(ev=>ev.id===e.id);
+          return (
+          <div key={e.id||i} onClick={()=>{ if(full){ setEvent(full); setScreen("detail"); } }} style={{background:C.card,borderRadius:12,marginBottom:12,overflow:"hidden",cursor:full?"pointer":"default",border:`1px solid ${C.border}`,opacity:full?1:0.6,boxShadow:full?C.shadow:"none"}}>
             <div style={{background:e.grad||"linear-gradient(135deg,#161D29,#0A0E14)",height:100,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
               <span style={{fontSize:40}}>{e.emoji||"📜"}</span>
               {isNew(e.createdAt)&&<div style={{position:"absolute",top:10,left:10,background:C.accent,borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,color:C.bg,letterSpacing:1}}>NEW</div>}
@@ -799,37 +1424,75 @@ export default function App() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
 
   const ProfileTab=()=>{
-    const pct=Math.round(USER.watched/USER.total*100);
+    const totalWatched = watched.size;
+    const xp = totalWatched * XP_PER_VIDEO;
+    const rank = getRank(xp);
+    const totalScenarios = ACTIVE_EVENTS.reduce((s,e)=>s+e.scenarios.length,0);
+    const pct = totalScenarios>0 ? Math.round(totalWatched/totalScenarios*100) : 0;
+    const earnedBadges = ACTIVE_EVENTS.filter(e=>e.scenarios.length>0 && e.scenarios.every(sc=>watched.has(e.id+"_"+sc.num))).map(e=>e.badge||e.short);
+    const bookmarkedItems = ACTIVE_EVENTS.flatMap(e=>e.scenarios.filter(sc=>bookmarks.has(e.id+"_"+sc.num)).map(sc=>({event:e,scenario:sc})));
     return (
       <div style={{flex:1,overflowY:"auto",padding:"0 0 20px"}}>
         <div style={{background:`linear-gradient(135deg,${C.accentBg},transparent)`,padding:"40px 24px 24px",textAlign:"center"}}>
           <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.accent},${C.accentDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🎓</div>
-          <div style={{fontSize:20,fontWeight:900}}>{loggedIn?(userName||USER.name):"Guest Explorer"}</div>
-          <div style={{fontSize:11,color:C.accent,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?USER.level:"Not signed in"}</div>
+          <div style={{fontSize:20,fontWeight:900}}>{loggedIn?(userName||"Explorer"):"Guest Explorer"}</div>
+          <div style={{fontSize:11,color:C.accent,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?rank:"Not signed in"}</div>
           {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:20,display:"inline-block",fontSize:11,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
-            : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>GO AD-FREE — ₹49/MONTH</button>}
+            : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{isTWA ? "GO AD-FREE — GOOGLE PLAY" : "GO AD-FREE — ₹49 + GST/MONTH"}</button>}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 20px"}}>
-          {[[<Flame size={20} color={C.accent2}/>,USER.streak,"DAY STREAK"],[<Zap size={20} color={C.accent}/>,USER.xp,"XP EARNED"],[<Star size={20} color={C.accent}/>,USER.watched,"WATCHED"],[<Globe size={20} color={C.green}/>,USER.badges.length,"BADGES"]].map(([icon,val,label],i)=>(
-            <div key={i} style={{background:C.card,borderRadius:10,padding:"14px",textAlign:"center",border:`1px solid ${C.border}`}}><div style={{marginBottom:6}}>{icon}</div><div style={{fontSize:22,fontWeight:900,color:C.text,fontFamily:"sans-serif"}}>{val}</div><div style={{fontSize:9,letterSpacing:1.5,color:C.textMuted,fontFamily:"sans-serif"}}>{label}</div></div>
+          {[[<Flame size={20} color={C.accent2}/>,streak,"DAY STREAK"],[<Zap size={20} color={C.accent}/>,xp,"XP EARNED"],[<Star size={20} color={C.accent}/>,totalWatched,"WATCHED"],[<Globe size={20} color={C.green}/>,earnedBadges.length,"BADGES"]].map(([icon,val,label],i)=>(
+            <div key={i} style={{background:C.card,borderRadius:10,padding:"14px",textAlign:"center",border:`1px solid ${C.border}`,boxShadow:C.shadow}}><div style={{marginBottom:6}}>{icon}</div><div style={{fontSize:22,fontWeight:900,color:C.text,fontFamily:"sans-serif"}}>{val}</div><div style={{fontSize:9,letterSpacing:1.5,color:C.textMuted,fontFamily:"sans-serif"}}>{label}</div></div>
           ))}
         </div>
         <div style={{padding:"0 16px 16px"}}>
           <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>TIMELINES EXPLORED</div>
-          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,fontFamily:"sans-serif"}}>{USER.watched} of {USER.total}</span><span style={{fontSize:13,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{pct}%</span></div><div style={{height:6,background:C.elevated,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.accentLight})`,borderRadius:3}}/></div></div>
+          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,fontFamily:"sans-serif"}}>{totalWatched} of {totalScenarios}</span><span style={{fontSize:13,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{pct}%</span></div><div style={{height:6,background:C.elevated,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.accentLight})`,borderRadius:3}}/></div></div>
         </div>
+        {earnedBadges.length>0 && (
+          <div style={{padding:"0 16px 16px"}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>BADGES EARNED</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {earnedBadges.map((b,i)=><div key={i} style={{background:C.accent2Bg,border:`1px solid ${C.accent2}`,borderRadius:20,padding:"6px 14px",fontSize:12,color:C.accent2,fontFamily:"sans-serif",fontWeight:700}}>{b}</div>)}
+            </div>
+          </div>
+        )}
+        {bookmarkedItems.length>0 && (
+          <div style={{padding:"0 16px 16px"}}>
+            <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>MY LIST</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {bookmarkedItems.map(({event:e,scenario:sc})=>(
+                <div key={e.id+"_"+sc.num} style={{display:"flex",alignItems:"center",gap:10,background:C.card,borderRadius:10,padding:"10px 12px",border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
+                  <div onClick={()=>{setEvent(e);setScenario(sc);setExpandN(false);setExpandR(false);setScreen("player");}} style={{flex:1,cursor:"pointer",minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sc.title}</div>
+                    <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:2}}>{e.short}</div>
+                  </div>
+                  <button onClick={()=>toggleBookmark(e.id+"_"+sc.num)} style={{background:"transparent",border:"none",cursor:"pointer",color:C.accent,flexShrink:0}}><Bookmark size={16} fill={C.accent}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={{padding:"0 16px 16px"}}>
           <div style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:12}}>YOUR PRIVACY</div>
-          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,display:"flex",gap:12,alignItems:"flex-start"}}><ShieldCheck size={18} color={C.green} style={{flexShrink:0,marginTop:2}}/><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>We store only your email and watch history. We never sell your data. Delete everything anytime from Settings.</div></div>
+          <div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`,display:"flex",gap:12,alignItems:"flex-start",marginBottom:10,boxShadow:C.shadow}}>
+            <ShieldCheck size={18} color={C.green} style={{flexShrink:0,marginTop:2}}/>
+            <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>We store only your email and watch history. We never sell your data. You can delete everything from Settings.{" "}
+              <a href="/privacy" target="_blank" rel="noopener" style={{color:C.accentLight}}>Privacy Policy</a>{" · "}
+              <a href="/terms" target="_blank" rel="noopener" style={{color:C.accentLight}}>Terms</a>{" · "}
+              <a href="mailto:grievance@kaash.app" style={{color:C.accentLight}}>Grievance Officer</a>
+            </div>
+          </div>
         </div>
         <div style={{padding:"0 16px"}}>
-          <button onClick={()=>setSettingsPage("menu")} style={{width:"100%",display:"flex",alignItems:"center",gap:12,background:C.card,borderRadius:10,padding:"15px 16px",cursor:"pointer",border:`1px solid ${C.border}`}}>
+          <button onClick={()=>setSettingsPage("menu")} style={{width:"100%",display:"flex",alignItems:"center",gap:12,background:C.card,borderRadius:10,padding:"15px 16px",cursor:"pointer",border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
             <SettingsIcon size={18} color={C.accent}/>
             <span style={{fontSize:14,color:C.text,fontFamily:"sans-serif"}}>Settings</span>
             <ChevronRight size={18} color={C.textMuted} style={{marginLeft:"auto"}}/>
@@ -841,6 +1504,8 @@ export default function App() {
 
   const tabs=[{id:"home",icon:<Home size={20}/>,label:"Home"},{id:"new",icon:<Bell size={20}/>,label:"New"},{id:"search",icon:<Search size={20}/>,label:"Search"},{id:"explore",icon:<Compass size={20}/>,label:"Explore"},{id:"profile",icon:<User size={20}/>,label:"Profile"}];
 
+  if(isDesktop && screen==="home" && tab==="home") return <DesktopHome/>;
+
   return (
     <div style={s}>
       <div style={{background:C.surface,padding:"44px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
@@ -850,7 +1515,7 @@ export default function App() {
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.accentDark}`}}>AD-FREE</div>}
-          <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{USER.streak}</span></div>
+          {streak>0 && <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{streak}</span></div>}
         </div>
       </div>
       {tab==="home"&&<HomeTab/>}
@@ -883,8 +1548,18 @@ function UpNextScreen({scenario,event,countdown,setCountdown,onPlay,onSkip}){
         <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:6}}>{scenario.title}</div>
         <div style={{fontSize:13,color:C.textSec,fontStyle:"italic",fontFamily:"sans-serif",marginBottom:6}}>"{scenario.tagline}"</div>
         <div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:28}}>from: {event.short}</div>
-        <div style={{width:64,height:64,borderRadius:"50%",border:`3px solid ${C.accent}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,position:"relative"}}>
-          <span style={{fontSize:22,fontWeight:900,color:C.accent,fontFamily:"sans-serif"}}>{countdown}</span>
+        <div style={{position:"relative",width:72,height:72,marginBottom:24}}>
+          <svg width="72" height="72" style={{position:"absolute",top:0,left:0,transform:"rotate(-90deg)"}}>
+            <circle cx="36" cy="36" r="32" fill="none" stroke={C.border} strokeWidth="3"/>
+            <circle cx="36" cy="36" r="32" fill="none" stroke={C.accent} strokeWidth="3"
+              strokeDasharray={`${2*Math.PI*32}`}
+              strokeDashoffset={`${2*Math.PI*32*(1-countdown/5)}`}
+              strokeLinecap="round"
+              style={{transition:"stroke-dashoffset 0.9s linear"}}/>
+          </svg>
+          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:22,fontWeight:900,color:C.accent,fontFamily:"sans-serif"}}>{countdown}</span>
+          </div>
         </div>
       </div>
       <div style={{padding:"0 24px 32px",display:"flex",gap:12,flexShrink:0}}>
@@ -896,19 +1571,19 @@ function UpNextScreen({scenario,event,countdown,setCountdown,onPlay,onSkip}){
 }
 
 
-function AdScreen({onDone,onUpgrade}){
+function AdScreen({onDone,onUpgrade,isTWA}){
   const [count,setCount]=useState(5);
   useEffect(()=>{ if(count<=0){onDone();return;} const t=setTimeout(()=>setCount(c=>c-1),1000); return ()=>clearTimeout(t); },[count,onDone]);
   return (
-    <div style={{display:"flex",flexDirection:"column",background:"#0E0C0A",color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
-      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#2A2418,#0E0C0A)",position:"relative"}}>
+    <div style={{display:"flex",flexDirection:"column",background:C.bg,color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#161D29,#0A0E14)",position:"relative"}}>
         <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,position:"absolute",top:48,left:20}}>ADVERTISEMENT</div>
         <div style={{fontSize:48,marginBottom:16}}>📺</div>
         <div style={{fontSize:16,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.5}}>Your ad plays here.<br/>This is how KAASH stays free.</div>
         <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.accent,fontWeight:900,fontSize:18}}>{count}</span></div>
       </div>
       <div style={{padding:"16px 20px 28px",background:C.bg}}>
-        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>REMOVE ADS — ₹49/MONTH</button>
+        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>{isTWA ? "REMOVE ADS — SUBSCRIBE ON GOOGLE PLAY" : "REMOVE ADS — ₹49 + GST/MONTH"}</button>
       </div>
     </div>
   );

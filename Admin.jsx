@@ -67,6 +67,7 @@ const C = {
   red:"#E53935", redBg:"rgba(229,57,53,0.1)",
   blue:"#2196F3", blueBg:"rgba(33,150,243,0.1)",
   text:"#F5F7FA", textSec:"#9AA5B8", textMuted:"#5C6A80",
+  shadow:"0 2px 10px rgba(0,0,0,0.28)",
 };
 
 // Hardcoded events list (matches main app)
@@ -171,7 +172,7 @@ function AdminLogin() {
       <KaashMark size={40}/>
       <div style={{fontSize:32,fontWeight:900,letterSpacing:6,color:C.text,marginTop:12,marginBottom:6}}>KAASH</div>
       <div style={{fontSize:12,color:C.textSec,letterSpacing:3,marginBottom:48}}>ADMIN PANEL</div>
-      <div style={{background:C.surface,borderRadius:12,padding:32,width:"100%",maxWidth:380,border:`1px solid ${C.border}`}}>
+      <div style={{background:C.surface,borderRadius:12,padding:32,width:"100%",maxWidth:380,border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Admin Access Only</div>
         <div style={{fontSize:13,color:C.textSec,lineHeight:1.6,marginBottom:24}}>This panel is restricted to the KAASH admin account. Sign in with the registered admin Gmail.</div>
         <button onClick={async ()=>{
@@ -196,7 +197,7 @@ function AdminLogin() {
 // ─── DASHBOARD ────────────────────────────────────────────────────────
 function Dashboard() {
   const firebase = useFirebase();
-  const [stats, setStats] = useState({users:0,premium:0,events:0,videos:0,recentUsers:[]});
+  const [stats, setStats] = useState({users:0,premium:0,recentUsers:[]});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -228,7 +229,7 @@ function Dashboard() {
           if(data.paidAt >= fyStart) fyRevenue += amt;
         });
 
-        setStats({users:usersSnap.size, premium, events:EVENT_LIST.length, videos:0,
+        setStats({users:usersSnap.size, premium,
           totalRevenue, monthlyRevenue, fyRevenue, recentUsers:recentUsers.slice(0,10)});
       } catch(e) { console.error(e); }
       setLoading(false);
@@ -237,7 +238,7 @@ function Dashboard() {
   }, [firebase]);
 
   const StatCard = ({label,value,sub,color}) => (
-    <div style={{background:C.card,borderRadius:12,padding:"20px 24px",border:`1px solid ${C.border}`,flex:1,minWidth:160}}>
+    <div style={{background:C.card,borderRadius:12,padding:"20px 24px",border:`1px solid ${C.border}`,flex:1,minWidth:160,boxShadow:C.shadow}}>
       <div style={{fontSize:32,fontWeight:900,color:color||C.accent,fontFamily:"monospace"}}>{loading?"—":value}</div>
       <div style={{fontSize:13,fontWeight:600,marginTop:4}}>{label}</div>
       {sub&&<div style={{fontSize:11,color:C.textSec,marginTop:2}}>{sub}</div>}
@@ -308,7 +309,7 @@ function Dashboard() {
         );
       })()}
 
-      <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+      <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:C.shadow}}>
         <div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`,fontWeight:700,fontSize:14}}>Recent Users</div>
         {loading ? <div style={{padding:20,color:C.textSec,fontSize:13}}>Loading...</div> :
           stats.recentUsers.length === 0 ? <div style={{padding:20,color:C.textSec,fontSize:13}}>No users yet. Share the app link to get your first users.</div> :
@@ -338,6 +339,7 @@ function Dashboard() {
 // ─── VIDEO UPLOAD ─────────────────────────────────────────────────────
 function UploadVideo() {
   const firebase = useFirebase();
+  const [eventOptions, setEventOptions] = useState(EVENT_LIST);
   const [selectedEvent, setSelectedEvent] = useState("");
   const [scenarioNum, setScenarioNum] = useState(1);
   const [lang, setLang] = useState("EN");
@@ -346,6 +348,22 @@ function UploadVideo() {
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  // Load all events from Firestore (built-in + any custom events), same as EditScenario
+  useEffect(()=>{
+    if (!firebase) return;
+    const load = async () => {
+      try {
+        const snap = await firebase.getDocs(firebase.collection(firebase.db,"events"));
+        const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+        const ids = new Set(list.map(e=>e.id));
+        EVENT_LIST.forEach(e=>{ if(!ids.has(e.id)) list.push(e); });
+        list.sort((a,b)=>(a.title||"").localeCompare(b.title||""));
+        setEventOptions(list);
+      } catch(e){ setEventOptions(EVENT_LIST); }
+    };
+    load();
+  },[firebase]);
 
   const handleFile = (f) => {
     if (!f) return;
@@ -390,13 +408,13 @@ function UploadVideo() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:6}}>Upload Video</h2>
       <p style={{color:C.textSec,fontSize:13,marginBottom:24}}>Upload a video to a specific event scenario. It goes live immediately.</p>
 
-      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,marginBottom:16}}>
+      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,marginBottom:16,boxShadow:C.shadow}}>
         <div style={{marginBottom:16}}>
           <label style={{fontSize:12,color:C.textSec,letterSpacing:1,display:"block",marginBottom:6}}>EVENT</label>
           <select value={selectedEvent} onChange={e=>setSelectedEvent(e.target.value)}
             style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,outline:"none"}}>
             <option value="">— Select event —</option>
-            {EVENT_LIST.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.title}</option>)}
+            {eventOptions.map(e=><option key={e.id} value={e.id}>{e.emoji||"📜"} {e.title}</option>)}
           </select>
         </div>
 
@@ -446,7 +464,7 @@ function UploadVideo() {
         </button>
       </div>
 
-      <div style={{background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+      <div style={{background:C.accentBg,border:`1px solid rgba(74,127,232,0.3)`,borderRadius:10,padding:"14px 16px"}}>
         <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 How this works</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           1. Generate video using InVideo AI with the prompt from your content files<br/>
@@ -463,6 +481,7 @@ function UploadVideo() {
 // ─── CONTENT MANAGER ──────────────────────────────────────────────────
 function ContentManager() {
   const firebase = useFirebase();
+  const [allEvents, setAllEvents] = useState(EVENT_LIST);
   const [videoStatus, setVideoStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState("");
@@ -470,8 +489,21 @@ function ContentManager() {
   useEffect(() => {
     if (!firebase) return;
     const load = async () => {
+      // Discover any custom events (created via New Event) beyond the 6 built-in ones
+      let combined = [...EVENT_LIST];
+      try {
+        const evSnap = await firebase.getDocs(firebase.collection(firebase.db,"events"));
+        evSnap.forEach(d => {
+          if(!EVENT_LIST.find(e=>e.id===d.id)){
+            const data = d.data();
+            if(data.title) combined.push({id:d.id, title:data.title, emoji:data.emoji||"📜"});
+          }
+        });
+      } catch(e) {}
+      setAllEvents(combined);
+
       const status = {};
-      for (const ev of EVENT_LIST) {
+      for (const ev of combined) {
         status[ev.id] = {};
         for (let s = 1; s <= 5; s++) {
           try {
@@ -507,7 +539,7 @@ function ContentManager() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:6}}>Content Manager</h2>
       <p style={{color:C.textSec,fontSize:13,marginBottom:24}}>See which videos are uploaded for each event and scenario.</p>
       {loading ? <div style={{color:C.textSec}}>Loading content status...</div> :
-        EVENT_LIST.map(ev => (
+        allEvents.map(ev => (
           <div key={ev.id} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,marginBottom:16,overflow:"hidden"}}>
             <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:20}}>{ev.emoji}</span>
@@ -577,7 +609,7 @@ function UsersList() {
 
       {loading ? <div style={{color:C.textSec}}>Loading users...</div> :
         users.length === 0 ? <div style={{color:C.textSec,background:C.card,borderRadius:12,padding:24,textAlign:"center"}}>No users yet. Share kaash-app.vercel.app to get your first users.</div> :
-        <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+        <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:C.shadow}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:C.surface}}>
@@ -620,10 +652,11 @@ function ExportData() {
     setExporting(true); setStatus("Fetching data...");
     try {
       const snap = await firebase.getDocs(firebase.collection(firebase.db,"users"));
-      const rows = [["User ID","Name","Email","Signed Up","Last Seen","Premium","Watch Count"]];
+      const rows = [["User ID","Name","Email","Signed Up","Last Seen","Premium","Videos Watched","Current Streak","XP","Bookmarks"]];
       snap.forEach(d => {
         const u = d.data();
-        rows.push([d.id, u.name||"", u.email||"", u.signedUpAt?.slice(0,10)||"", u.lastSeen?.slice(0,10)||"", u.isPremium?"Yes":"No", u.watchCount||0]);
+        const watched = (u.watchedScenarios||[]).length;
+        rows.push([d.id, u.name||"", u.email||"", u.signedUpAt?.slice(0,10)||"", u.lastSeen?.slice(0,10)||"", u.isPremium?"Yes":"No", watched, u.streak||0, watched*25, (u.bookmarks||[]).length]);
       });
       const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
       const blob = new Blob([csv], {type:"text/csv"});
@@ -641,11 +674,11 @@ function ExportData() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:6}}>Export Data</h2>
       <p style={{color:C.textSec,fontSize:13,marginBottom:24}}>Download your user data for analysis in Excel or Google Sheets.</p>
 
-      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,marginBottom:16}}>
+      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,marginBottom:16,boxShadow:C.shadow}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>📊 Users CSV</div>
         <div style={{fontSize:13,color:C.textSec,lineHeight:1.7,marginBottom:20}}>
           Exports a CSV with columns:<br/>
-          User ID · Name · Email · Signed Up · Last Seen · Premium (Yes/No) · Watch Count
+          User ID · Name · Email · Signed Up · Last Seen · Premium (Yes/No) · Videos Watched · Current Streak · XP · Bookmarks
         </div>
         <button onClick={exportCSV} disabled={exporting}
           style={{width:"100%",padding:"13px 0",background:exporting?C.surface:C.accent,border:"none",borderRadius:8,color:exporting?C.textMuted:C.bg,fontSize:14,fontWeight:700,cursor:exporting?"not-allowed":"pointer",letterSpacing:1}}>
@@ -654,7 +687,7 @@ function ExportData() {
         {status && <div style={{marginTop:12,padding:"10px 14px",background:status.startsWith("✅")?C.greenBg:status.startsWith("❌")?C.redBg:C.surface,borderRadius:8,fontSize:13,color:status.startsWith("✅")?C.green:status.startsWith("❌")?C.red:C.text}}>{status}</div>}
       </div>
 
-      <div style={{background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+      <div style={{background:C.accentBg,border:`1px solid rgba(74,127,232,0.3)`,borderRadius:10,padding:"14px 16px"}}>
         <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 Usage tip</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           Open the CSV in Google Sheets for easy analysis.<br/>
@@ -701,6 +734,11 @@ function CreateEvent() {
     setSaving(true); setStatus("");
     try {
       const id = generateId(form.title);
+      const existing = await firebase.getDoc(firebase.doc(firebase.db,"events",id));
+      if(existing.exists()){
+        setStatus(`❌ An event with ID "${id}" already exists ("${existing.data().title||id}"). Choose a different title to avoid overwriting it.`);
+        setSaving(false); return;
+      }
       const eventData = {
         id, title:form.title, short:form.short||form.title.slice(0,40),
         year:parseInt(form.year), era:form.era, region:form.region,
@@ -732,7 +770,7 @@ function CreateEvent() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:6}}>Create New Event</h2>
       <p style={{color:C.textSec,fontSize:13,marginBottom:24}}>Add a new historical event. It will appear in the app immediately after saving.</p>
 
-      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`}}>
+      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
         <div style={{display:"flex",gap:12}}>
           <div style={{flex:3}}><Input label="EVENT TITLE (full)" placeholder="e.g. Battle of Plassey, 1757" value={form.title} onChange={v=>set("title",v)}/></div>
           <div style={{flex:1}}><Input label="EMOJI" placeholder="🏛️" value={form.emoji} onChange={v=>set("emoji",v)}/></div>
@@ -834,7 +872,7 @@ function EditScenario() {
         const d=snap.data();
         setForm({
           title:d.title||"",tagline:d.tagline||"",narrative:d.narrative||"",
-          ripples:d.ripples&&d.ripples.length===5?d.ripples:["","","","",""]
+          ripples:Array.isArray(d.ripples)?[...d.ripples,"","","","",""].slice(0,5):["","","","",""]
         });
       } else {
         setForm({title:"",tagline:"",narrative:"",ripples:["","","","",""]});
@@ -873,7 +911,7 @@ function EditScenario() {
       <h2 style={{fontSize:20,fontWeight:700,marginBottom:6}}>Edit Scenario Details</h2>
       <p style={{color:C.textSec,fontSize:13,marginBottom:24}}>Add or edit the title, narrative and ripple effects for any scenario.</p>
 
-      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`}}>
+      <div style={{background:C.card,borderRadius:12,padding:24,border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
         <div style={{display:"flex",gap:12,marginBottom:20}}>
           <div style={{flex:3}}>
             <label style={{fontSize:11,color:C.textSec,letterSpacing:1,display:"block",marginBottom:5}}>EVENT</label>
@@ -969,7 +1007,7 @@ function Suggestions() {
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif"}}>When users search for something that doesn't exist and tap "Suggest it", it appears here.</div>
           </div>
         ) : (
-          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:C.shadow}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:C.surface}}>
@@ -1009,7 +1047,7 @@ function Suggestions() {
         )
       }
 
-      <div style={{marginTop:16,background:C.accentBg,border:`1px solid rgba(232,184,75,0.3)`,borderRadius:10,padding:"14px 16px"}}>
+      <div style={{marginTop:16,background:C.accentBg,border:`1px solid rgba(74,127,232,0.3)`,borderRadius:10,padding:"14px 16px"}}>
         <div style={{fontSize:13,fontWeight:700,color:C.accent,marginBottom:6}}>💡 How this works</div>
         <div style={{fontSize:12,color:C.textSec,lineHeight:1.7}}>
           When a user searches for something not in the app, they see a "Suggest it" button.<br/>
@@ -1100,7 +1138,7 @@ function PaymentsTab() {
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6}}>Once Razorpay is connected and users subscribe, all transactions appear here with full tax breakdown.</div>
           </div>
         ):(
-          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:C.shadow}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:C.surface}}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 
-// ─── KAASH v1.13 ────────────────────────────────────────────────────
+// ─── KAASH v1.14 ─ Cinematic Gold Design System ────────────────────
 // Player: YouTube-style, BOTH orientations, user-controlled.
+// Design: Cinematic gold palette, prestige documentary aesthetic.
 //  • Inline (default): vertical 9:16 frame in the scrolling page.
 //  • Fullscreen: fills the screen via an explicit toggle button (works
 //    across browsers + Android TWA). Orientation is NOT forced — the
@@ -97,12 +98,13 @@ const KAASH_PLANS = {
 };
 
 const C = {
-  bg:"#0A0E14", surface:"#11161F", card:"#161D29", elevated:"#1F2937", border:"#232B38",
-  accent:"#4A7FE8", accentLight:"#8AAFF5", accentDark:"#2C5BB8", accentBg:"rgba(74,127,232,0.12)",
-  accent2:"#5FD4C8", accent2Bg:"rgba(95,212,200,0.14)",
-  red:"#E0635A", green:"#6FBF73", greenBg:"rgba(111,191,115,0.14)",
-  text:"#F5F7FA", textSec:"#9AA5B8", textMuted:"#5C6A80",
-  shadow:"0 2px 10px rgba(0,0,0,0.28)", shadowLg:"0 8px 24px rgba(0,0,0,0.35)",
+  bg:"#080A0C", surface:"#0F1114", card:"#141619", elevated:"#1C1E22", border:"#2A2820",
+  accent:"#C9A84C", accentLight:"#E8CA7A", accentDark:"#9A7A2E", accentBg:"rgba(201,168,76,0.10)",
+  accent2:"#E8724A", accent2Bg:"rgba(232,114,74,0.12)",
+  red:"#E05A5A", green:"#5ABF7A", greenBg:"rgba(90,191,122,0.14)",
+  text:"#F0EDE8", textSec:"#9A9490", textMuted:"#5C5850",
+  shadow:"0 2px 16px rgba(0,0,0,0.5)", shadowLg:"0 8px 32px rgba(0,0,0,0.6)",
+  glow:"0 0 40px rgba(201,168,76,0.15)",
 };
 
 // ─── PROGRESS SYSTEM ──────────────────────────────────────────────
@@ -122,7 +124,7 @@ const todayStr = () => new Date().toISOString().slice(0,10);
 const yesterdayStr = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
 
 const EVENTS = [
-  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#3D2A38,#12141C)", badge:"WW1 Scholar",
+  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#5C1A1A,#2A0A0A,#080A0C)", badge:"WW1 Scholar",
     desc:"On June 28, 1914, a single bullet in Sarajevo triggered a chain reaction killing 20 million and reshaping every nation on Earth.",
     tags:["WW1","Europe","Nationalism"],
     scenarios:[
@@ -133,7 +135,7 @@ const EVENTS = [
       {num:5,title:"Princip Hits the Wrong Target",tagline:"What if he killed a minor official?",ripples:["Austria-Hungary reforms — survives as federal state into 1930s","Delayed but smaller world war in 1924 — 3 million not 20 million dead","No Versailles humiliation — Hitler never rises to power","Russian monarchy survives longer, gentle reforms avoid revolution","The 20th century is brutal but not apocalyptic"],narrative:"The Sarajevo plot goes slightly wrong. Princip fires — but shoots Count von Berchtold, Austria's Foreign Minister, instead of the Archduke. Franz Ferdinand survives.\n\nAustria protests, negotiates, gets concessions from Serbia. No war. Europe avoids 1914's catastrophe.\n\nBut the underlying tensions find release in a different crisis a decade later. A smaller delayed war comes in 1924 — 3 million dead instead of 20 million. Terrible, but survivable."},
     ]
   },
-  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#28365A,#12141C)", badge:"WW2 Expert",
+  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#1A2A4A,#0A1020,#080A0C)", badge:"WW2 Expert",
     desc:"The deadliest conflict in human history — 70-85 million dead, the Holocaust, the atomic bomb, and a world order remade from its ashes.",
     tags:["Holocaust","Nuclear Age","Fascism"],
     scenarios:[
@@ -144,7 +146,7 @@ const EVENTS = [
       {num:5,title:"Atomic Bomb Never Used",tagline:"What if Truman chose invasion?",ripples:["1 million+ Allied deaths in Japanese invasion","Japan physically destroyed through conventional war — decades slower recovery","Nuclear taboo never exists — Cold War catastrophically more dangerous","Anti-nuclear movement never exists — no Hiroshima imagery to point to","Korean War: South Korea almost certainly falls to the North"],narrative:"Summer 1945. Truman chooses Operation Downfall over the atomic bomb. The ground invasion of Japan begins November 1945. One million Allied casualties. Five to ten million Japanese killed.\n\nThe bomb exists — but having never been used, its psychological weight is different. When the Soviets test their device in 1950, there is no 'you already crossed that line' dynamic.\n\nThe Cold War nearly becomes hot — three times. The horror of Hiroshima that restrained real leaders does not exist in this world."},
     ]
   },
-  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#1F3D3A,#12141C)", badge:"India Historian",
+  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#4A2E00,#1A0A00,#080A0C)", badge:"India Historian",
     desc:"August 1947: British India divided into two nations overnight. Up to 2 million killed, 15 million displaced, and a nuclear rivalry born that shapes South Asia today.",
     tags:["India","Pakistan","Independence"],
     scenarios:[
@@ -155,7 +157,7 @@ const EVENTS = [
       {num:5,title:"Slower Partition — No Violence",tagline:"What if Britain stayed until 1960?",ripples:["Partition violence never happens — 2 million lives saved overnight","South Asian confederation with open borders established by 1960","Kashmir integrated through negotiation — no Line of Control","Neither India nor Pakistan develops nuclear weapons until 1990s","The subcontinent's most talented people never flee refugee crisis"],narrative:"A slow, negotiated transfer — province by province over 13 years — begins in 1947 but completes in 1960. The violence of 1947 never happens. Communities migrate gradually, retaining property and dignity.\n\nBy 1960, a confederation emerges: India and Pakistan as separate nations but within a South Asian economic community — like the EU, 30 years early.\n\nThe resources spent on three wars and two nuclear programs are channelled into roads, hospitals, and schools for one billion people."},
     ]
   },
-  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#2C3D5E,#12141C)", badge:"Space Pioneer",
+  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#0A0A3A,#1A0A2A,#080A0C)", badge:"Space Pioneer",
     desc:"July 20, 1969. Humanity's greatest achievement. But what if the most audacious mission in history had gone differently?",
     tags:["Space Race","Cold War","NASA"],
     scenarios:[
@@ -166,7 +168,7 @@ const EVENTS = [
       {num:5,title:"China Lands First in 1969",tagline:"What if there were three entrants?",ripples:["Three-way space race drives unprecedented global investment","China becomes space and tech superpower 50 years ahead of schedule","Asian century begins in 1975 not 2000","Cold War becomes three-polar — fundamentally different geopolitics","Space becomes Asia-Pacific dominated"],narrative:"China, which in reality had its own quietly cancelled lunar program, succeeds in this timeline. July 25, 1969: five days after Armstrong, a Chinese taikonaut plants the five-star red flag on the lunar surface.\n\nThree flags on the Moon within a week. A three-way space race begins — and with it, a three-polar Cold War.\n\nChina becomes a technology superpower in the 1970s instead of the 2000s. The Asian century begins 25 years early."},
     ]
   },
-  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3E3525,#12141C)", badge:"Ancient Scholar",
+  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3A2800,#1A1000,#080A0C)", badge:"Ancient Scholar",
     desc:"Alexander the Great died at 32 in Babylon — possibly the most consequential early death in history. What if he had lived another 40 years?",
     tags:["Ancient","Alexander","Greece"],
     scenarios:[
@@ -177,7 +179,7 @@ const EVENTS = [
       {num:5,title:"Alexander Reaches the Americas",tagline:"What if he sailed west?",ripples:["Old World meets New World 1800 years before Columbus","Native American civilizations encounter Greek science early","Disease still spreads but from much smaller initial contact","Two parallel civilizations develop in contact from 280 BC","The world of 2024 has 1800 more years of cross-cultural exchange"],narrative:"310 BC. Alexander, obsessed with what lies beyond the Pillars of Hercules, commissions a massive fleet. Sailing west from Carthage, after months at sea, his ships reach the Caribbean.\n\nThe encounter is different from Columbus's: Alexander is curious, not acquisitive. He establishes a trading colony. Greek mathematics spreads; Mesoamerican astronomy flows east.\n\nTwo civilizations in contact from 280 BC have 1,800 more years of exchange."},
     ]
   },
-  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#3A2A22,#12141C)", badge:"Cold War Analyst",
+  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#0A2A1A,#001A0A,#080A0C)", badge:"Cold War Analyst",
     desc:"October 1962: the closest humanity has ever come to nuclear war. 13 days when a single wrong decision could have ended civilization.",
     tags:["Cold War","Nuclear","Kennedy"],
     scenarios:[
@@ -636,7 +638,7 @@ export default function App() {
     setUpNextScenario(sc); setUpNextEvent(ev); setUpNextCount(10); setScreen("upnext");
   };
 
-  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:"Georgia,serif", height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
+  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:"'Georgia','Times New Roman',serif", height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
 
   const attemptWatch = (sc, ev) => {
     setScenario(sc); setEvent(ev); setExpandN(false); setExpandR(false);
@@ -651,7 +653,7 @@ export default function App() {
   // localStorage flag: kaash_age_verified
   if (screen==="agegate") {
     return (
-      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.08) 0%, ${C.bg} 70%)`}}>
+      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.10) 0%, rgba(232,114,74,0.04) 55%, ${C.bg} 78%)`}}>
         <KaashMark size={44}/>
         <div style={{marginTop:20,marginBottom:4,fontSize:28,fontWeight:900,letterSpacing:4,color:C.text,textAlign:"center"}}>KAASH</div>
         <div style={{fontSize:11,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginBottom:40}}>कaश · ALTERNATE HISTORY</div>
@@ -689,8 +691,8 @@ export default function App() {
     const sl=slides[slide];
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.1) 0%, ${C.bg} 70%)`}}>
-          <div style={{fontSize:72,marginBottom:24}}>{sl.emoji}</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.12) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:64,marginBottom:20,filter:"drop-shadow(0 0 20px rgba(201,168,76,0.3))"}}>🎞</div>
           <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.accent,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
           <div style={{fontSize:13,color:C.accent2,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
           <div style={{fontSize:15,color:C.textSec,lineHeight:1.7,textAlign:"center",fontFamily:"sans-serif",maxWidth:320}}>{sl.body}</div>
@@ -729,8 +731,8 @@ export default function App() {
   if (screen==="login") {
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 50% 30%, rgba(74,127,232,0.1) 0%, ${C.bg} 70%)`}}>
-          <div style={{fontSize:30,fontWeight:900,letterSpacing:5,color:C.accent,marginBottom:6}}>KAASH</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.12) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:34,fontWeight:900,letterSpacing:8,color:C.accent,marginBottom:6,fontFamily:"Georgia,serif",textShadow:"0 0 30px rgba(201,168,76,0.4)"}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
           <button onClick={async ()=>{
@@ -758,8 +760,8 @@ export default function App() {
                 else { setHasSeenOnboard(true); setScreen("home"); }
               } catch(e){ console.error("Sign-in failed:", e); }
             }}
-            style={{width:"100%",maxWidth:320,padding:"13px 0",background:termsChecked?"#fff":"#5A5247",border:"none",borderRadius:10,color:termsChecked?"#222":"#999",cursor:termsChecked?"pointer":"not-allowed",fontFamily:"sans-serif",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"all 0.2s"}}>
-            <span style={{fontSize:18,fontWeight:900,color:termsChecked?"#4285F4":"#999"}}>G</span> Continue with Google
+            style={{width:"100%",maxWidth:320,padding:"15px 0",background:"#ffffff",border:"none",borderRadius:12,color:"#1a1a1a",cursor:"pointer",fontFamily:"sans-serif",fontSize:15,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:16,transition:"all 0.2s",boxShadow:"0 2px 12px rgba(0,0,0,0.4)"}}>
+            <span style={{fontSize:20,fontWeight:900,color:"#4285F4"}}>G</span> Continue with Google
           </button>
           <div onClick={()=>setTermsChecked(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",maxWidth:320}}>
             <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${termsChecked?C.accent:C.textMuted}`,background:termsChecked?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>
@@ -790,10 +792,10 @@ export default function App() {
       : `PAY ₹${plan.total} (incl. GST) →`;
     return (
       <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:`linear-gradient(180deg,rgba(74,127,232,0.15),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{background:`linear-gradient(180deg,rgba(201,168,76,0.18),rgba(232,114,74,0.08),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
           <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
-          <div style={{fontSize:36,marginBottom:8}}>✦</div>
-          <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:C.accent}}>GO AD-FREE</div>
+          <div style={{fontSize:40,marginBottom:8,color:C.accent,textShadow:"0 0 20px rgba(201,168,76,0.6)"}}>✦</div>
+          <div style={{fontSize:26,fontWeight:900,letterSpacing:4,color:C.accent,fontFamily:"Georgia,serif"}}>GO AD‑FREE</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>
             {isTWA ? "Billed via Google Play. Cancel anytime in Play Store." : "One price. No ads. Full access."}
           </div>
@@ -802,7 +804,7 @@ export default function App() {
           <div style={{marginBottom:14}}>
             {Object.entries(KAASH_PLANS).map(([planKey,p])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
-                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 20px rgba(74,127,232,0.25)":C.shadow}}>
+                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 24px rgba(201,168,76,0.25)":C.shadow}}>
                 {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.accent,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
@@ -1084,7 +1086,7 @@ export default function App() {
           ) : (
             <div style={{position:"absolute",inset:0,background:event.grad}}>
               <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <div style={{width:56,height:56,borderRadius:"50%",background:`${C.accent}ee`,display:"flex",alignItems:"center",justifyContent:"center"}}><Play size={26} color={C.bg} style={{marginLeft:3}}/></div>
+                <div style={{width:56,height:56,borderRadius:"50%",background:`rgba(201,168,76,0.9)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 30px rgba(201,168,76,0.4)"}}><Play size={26} color="#080A0C" style={{marginLeft:3}}/></div>
                 <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary — coming soon</div>
               </div>
               <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
@@ -1218,7 +1220,7 @@ export default function App() {
       <div style={{display:"flex",gap:16,paddingLeft:48,paddingRight:48,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
           <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:240,cursor:"pointer"}}>
-            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:`1px solid ${C.border}`}}>
+            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:"1px solid rgba(201,168,76,0.08)"}}>
               <span style={{fontSize:52}}>{e.emoji}</span>
               <div style={{position:"absolute",bottom:10,left:10,background:"rgba(0,0,0,0.7)",borderRadius:4,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
               <div style={{position:"absolute",top:10,right:10,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:4,padding:"3px 7px"}}><span style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
@@ -1242,18 +1244,18 @@ export default function App() {
       <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Georgia,serif"}}>
         <style>{`
           .kaash-tile{transition:transform 0.2s ease, box-shadow 0.2s ease;}
-          .kaash-tile:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(74,127,232,0.25);z-index:2;}
+          .kaash-tile:hover{transform:scale(1.05);box-shadow:0 12px 40px rgba(201,168,76,0.25),0 0 0 1px rgba(201,168,76,0.2);z-index:2;}
           .kaash-nav-link{transition:color 0.15s ease;}
-          .kaash-nav-link:hover{color:${C.accent} !important;}
+          .kaash-nav-link:hover{color:${C.accent} !important;text-shadow:0 0 20px rgba(201,168,76,0.4);}
           .kaash-cta{transition:background 0.15s ease, transform 0.15s ease;}
-          .kaash-cta:hover{background:${C.accentLight} !important;transform:translateY(-1px);}
+          .kaash-cta:hover{background:${C.accentDark} !important;transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,0.35);}
           .kaash-signin{transition:border-color 0.15s ease, color 0.15s ease;}
           .kaash-signin:hover{border-color:${C.accent} !important;color:${C.accent} !important;}
         `}</style>
-        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:"1px solid rgba(201,168,76,0.08)",background:"rgba(8,10,12,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <KaashMark size={28}/>
-            <div><span style={{fontSize:20,fontWeight:900,letterSpacing:4,color:C.text}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+            <div><span style={{fontSize:20,fontWeight:900,letterSpacing:5,color:C.accent,textShadow:"0 0 20px rgba(201,168,76,0.4)"}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
           </div>
           <div style={{display:"flex",gap:24,fontFamily:"sans-serif",fontSize:13}}>
             <span onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} className="kaash-nav-link" style={{color:C.text,fontWeight:700,cursor:"pointer"}}>Home</span>
@@ -1269,13 +1271,13 @@ export default function App() {
         </div>
 
         <div style={{height:420,position:"relative",overflow:"hidden",background:featured.grad,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 48px 40px"}}>
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(10,14,20,0.3),transparent,${C.bg})`}}/>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(8,10,12,0.2) 0%,transparent 30%,rgba(8,10,12,0.7) 70%,${C.bg} 100%)`}}/>
           <div style={{position:"relative",maxWidth:560}}>
             <div style={{fontSize:11,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>★ TIMELINE OF THE WEEK</div>
             <div style={{fontSize:42,fontWeight:900,lineHeight:1.15,marginBottom:10}}>{featured.title}</div>
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginBottom:6}}>{featured.year} · {featured.region}</div>
             <div style={{fontSize:14,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:24}}>{featured.desc}</div>
-            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>EXPLORE 5 TIMELINES →</button>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:C.accent,border:"none",borderRadius:6,color:"#080A0C",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:2,boxShadow:"0 4px 20px rgba(201,168,76,0.4)"}}>EXPLORE 5 TIMELINES →</button>
           </div>
         </div>
 
@@ -1523,8 +1525,8 @@ export default function App() {
       {tab==="new"&&<WhatsNewTab/>}
       {tab==="search"&&<SearchTab/>}
       {tab==="profile"&&<ProfileTab/>}
-      <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
-        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
+      <div style={{background:"#0D0C09",borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
+        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted,textShadow:tab===t.id?"0 0 12px rgba(201,168,76,0.4)":"none"}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
       </div>
     </div>
   );
@@ -1578,12 +1580,12 @@ function AdScreen({onDone,onUpgrade,isTWA}){
     <div style={{display:"flex",flexDirection:"column",background:C.bg,color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#161D29,#0A0E14)",position:"relative"}}>
         <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,position:"absolute",top:48,left:20}}>ADVERTISEMENT</div>
-        <div style={{fontSize:48,marginBottom:16}}>📺</div>
-        <div style={{fontSize:16,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.5}}>Your ad plays here.<br/>This is how KAASH stays free.</div>
+        <div style={{fontSize:52,marginBottom:16,filter:"drop-shadow(0 0 16px rgba(201,168,76,0.4))"}}>🎬</div>
+        <div style={{fontSize:15,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.7,fontFamily:"Georgia,serif",letterSpacing:0.3}}>A brief moment before your timeline.<br/>This is how KAASH stays free.</div>
         <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.accent,fontWeight:900,fontSize:18}}>{count}</span></div>
       </div>
       <div style={{padding:"16px 20px 28px",background:C.bg}}>
-        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>{isTWA ? "REMOVE ADS — SUBSCRIBE ON GOOGLE PLAY" : "REMOVE ADS — ₹49 + GST/MONTH"}</button>
+        <button onClick={onUpgrade} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1px solid ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>{isTWA ? "REMOVE ADS  ·  GOOGLE PLAY" : "REMOVE ADS  ·  ₹49 + GST / MONTH"}</button>
       </div>
     </div>
   );

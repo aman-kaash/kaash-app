@@ -5,7 +5,7 @@ if(typeof document !== "undefined" && !document.getElementById("kaash-fonts")){
   const link = document.createElement("link");
   link.id = "kaash-fonts";
   link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&family=Cinzel+Decorative:wght@400;700&display=swap";
+  link.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap";
   document.head.appendChild(link);
 }
 
@@ -106,29 +106,28 @@ const KAASH_PLANS = {
   },
 };
 
-// ─── DARK MATTER DESIGN SYSTEM v1.15 ─────────────────────────────
-// Obsidian blacks. Ultraviolet-to-amber gradient accent.
-// Typography: Cinzel (titles) + Inter (body).
-// Every surface glows. Nothing is flat.
+// ─── DARK COSMOS DESIGN SYSTEM v1.16 ─────────────────────────────
+// Absolute obsidian. Psychedelic nebula glows.
+// Typography: Playfair Display (editorial) + DM Sans (clean body).
+// Inspired by: Dune, Interstellar, prestige documentaries.
+// One gold accent. One cosmic purple. Used with restraint and power.
 const C = {
-  bg:"#030305", surface:"#08080F", card:"#0D0D18", elevated:"#12121F", border:"#1E1E30",
-  accent:"#F59E0B",        // electric amber — primary CTA, highlights
-  accentViolet:"#7C3AED",  // ultraviolet — gradients, glows
-  accentLight:"#FCD34D",
-  accentDark:"#D97706",
-  accentBg:"rgba(245,158,11,0.08)",
-  accent2:"#EC4899",       // hot magenta — secondary highlights
-  accent2Bg:"rgba(236,72,153,0.10)",
+  bg:"#040406", surface:"#07070C", card:"#0C0C14", elevated:"#11111A", border:"rgba(255,255,255,0.06)",
+  accent:"#E8B84B",          // cinematic gold — the only CTA colour
+  accentLight:"#F5D07A",
+  accentDark:"#C49530",
+  accentBg:"rgba(232,184,75,0.08)",
+  purple:"#6D28D9",          // cosmic purple — glows and gradients only
+  purpleBg:"rgba(109,40,217,0.10)",
   red:"#F87171", green:"#34D399", greenBg:"rgba(52,211,153,0.12)",
-  text:"#F8F6F0", textSec:"#8B8A9A", textMuted:"#4A4860",
-  shadow:"0 4px 24px rgba(0,0,0,0.7)", shadowLg:"0 16px 48px rgba(0,0,0,0.8)",
-  // Gradient strings for convenience
-  gradAccent:"linear-gradient(135deg, #7C3AED, #F59E0B)",
-  gradCard:"linear-gradient(135deg, rgba(124,58,237,0.15), rgba(245,158,11,0.08))",
-  glowAmber:"0 0 30px rgba(245,158,11,0.25)",
-  glowViolet:"0 0 30px rgba(124,58,237,0.25)",
-  fontTitle:"'Cinzel', 'Georgia', serif",
-  fontBody:"'Inter', 'system-ui', sans-serif",
+  text:"#F2EFE8", textSec:"#7A7870", textMuted:"#3A3830",
+  shadow:"0 4px 32px rgba(0,0,0,0.8)", shadowLg:"0 20px 60px rgba(0,0,0,0.9)",
+  glow:"0 0 40px rgba(232,184,75,0.20)",
+  glowPurple:"0 0 60px rgba(109,40,217,0.18)",
+  fontTitle:"'Playfair Display', 'Georgia', serif",
+  fontBody:"'DM Sans', 'system-ui', sans-serif",
+  // Psychedelic nebula background — the signature of KAASH
+  nebulaGrad:`radial-gradient(ellipse 120% 80% at 50% -20%, rgba(109,40,217,0.25) 0%, rgba(232,184,75,0.08) 40%, transparent 70%), radial-gradient(ellipse 80% 60% at 90% 100%, rgba(232,184,75,0.12) 0%, transparent 60%), #040406`,
 };
 
 // ─── PROGRESS SYSTEM ──────────────────────────────────────────────
@@ -243,6 +242,7 @@ export default function App() {
   const [expandR, setExpandR] = useState(false);
   const [termsChecked, setTermsChecked] = useState(()=> typeof window!=="undefined" && localStorage.getItem("kaash_terms")==="1");
   const [pendingWatch, setPendingWatch] = useState(null);
+  const [loginReason, setLoginReason] = useState("gate"); // "gate" | "direct" | "payment"
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [firebaseReady, setFirebaseReady] = useState(false);
@@ -528,7 +528,7 @@ export default function App() {
   const ACTIVE_EVENTS = dynamicEvents.length > 0 ? dynamicEvents : EVENTS;
 
   const initiatePayment = async () => {
-    if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }
+    if(!fb || !fb.auth.currentUser){ setPaywall(false); setLoginReason("payment"); setScreen("login"); return; }
     // If Razorpay script hasn't loaded yet, load it now and retry
     if(!window.Razorpay){
       setPaymentError("Loading payment system...");
@@ -608,7 +608,7 @@ export default function App() {
   // Called only inside TWA. Uses Digital Goods API + PaymentRequest API.
   // Google shows its own native billing bottom-sheet — we never see card data.
   const initiatePlayPurchase = async () => {
-    if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }
+    if(!fb || !fb.auth.currentUser){ setPaywall(false); setLoginReason("payment"); setScreen("login"); return; }
     setPaymentLoading(true); setPaymentError("");
     try {
       // Get the Digital Goods service (only available in TWA)
@@ -686,11 +686,11 @@ export default function App() {
     setUpNextScenario(sc); setUpNextEvent(ev); setUpNextCount(10); setScreen("upnext");
   };
 
-  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:C.fontBody, height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
+  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:C.fontBody, height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" }; const nebulaStyle = { background:C.nebulaGrad };
 
   const attemptWatch = (sc, ev) => {
     setScenario(sc); setEvent(ev); setExpandN(false); setExpandR(false);
-    if (watchCount >= 2 && !loggedIn) { setPendingWatch({sc,ev}); setScreen("login"); return; }
+    if (watchCount >= 2 && !loggedIn) { setPendingWatch({sc,ev}); setLoginReason("gate"); setScreen("login"); return; }
     if (!premium) setScreen("ad"); else setScreen("disclaimer");
   };
 
@@ -701,7 +701,7 @@ export default function App() {
   // localStorage flag: kaash_age_verified
   if (screen==="agegate") {
     return (
-      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.04) 55%, ${C.bg} 78%)`}}>
+      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(232,184,75,0.10) 0%, rgba(232,114,74,0.04) 55%, ${C.bg} 78%)`}}>
         <KaashMark size={44}/>
         <div style={{marginTop:20,marginBottom:4,fontSize:28,fontWeight:900,letterSpacing:4,color:C.text,textAlign:"center"}}>KAASH</div>
         <div style={{fontSize:11,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginBottom:40}}>कaश · ALTERNATE HISTORY</div>
@@ -712,7 +712,7 @@ export default function App() {
             By continuing, you confirm you are <strong>13 years of age or older</strong>. If you are between 13–17, a parent or guardian has consented to your use of this app.
           </div>
           <button onClick={()=>{ localStorage.setItem("kaash_age_verified","1"); if(!localStorage.getItem("kaash_onboarded")) setScreen("onboard"); else setScreen("home"); }}
-            style={{width:"100%",padding:"14px 0",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:10,color:"#030305",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginBottom:12,boxShadow:"0 6px 24px rgba(124,58,237,0.35)"}}>
+            style={{width:"100%",padding:"14px 0",background:"linear-gradient(135deg,#6D28D9,#E8B84B)",border:"none",borderRadius:10,color:"#030305",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginBottom:12,boxShadow:"0 6px 24px rgba(109,40,217,0.35)"}}>
             I AM 13 OR OLDER — CONTINUE
           </button>
           <button onClick={()=>{ window.location.href="https://www.google.com"; }}
@@ -739,8 +739,8 @@ export default function App() {
     const sl=slides[slide];
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
-          <div style={{fontSize:64,marginBottom:20,filter:"drop-shadow(0 0 20px rgba(124,58,237,0.4))"}}>🎞</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 40% 20%, rgba(232,184,75,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:64,marginBottom:20,filter:"drop-shadow(0 0 20px rgba(109,40,217,0.4))"}}>🎞</div>
           <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.accent,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
           <div style={{fontSize:13,color:C.accent2,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
           <div style={{fontSize:15,color:C.textSec,lineHeight:1.7,textAlign:"center",fontFamily:"sans-serif",maxWidth:320}}>{sl.body}</div>
@@ -770,7 +770,7 @@ export default function App() {
     return <UpNextScreen
       scenario={upNextScenario} event={upNextEvent} countdown={upNextCount}
       setCountdown={setUpNextCount}
-      onPlay={()=>{ if(watchCount>=2 && !loggedIn){ setPendingWatch({sc:upNextScenario, ev:upNextEvent}); setScreen("login"); return; } setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
+      onPlay={()=>{ if(watchCount>=2 && !loggedIn){ setPendingWatch({sc:upNextScenario, ev:upNextEvent}); setLoginReason("gate"); setScreen("login"); return; } setScenario(upNextScenario); setEvent(upNextEvent); setExpandN(false); setExpandR(false); if(!premium)setScreen("ad");else setScreen("disclaimer"); }}
       onSkip={()=>{setTab("home");setScreen("home");}}
     />;
   }
@@ -779,10 +779,14 @@ export default function App() {
   if (screen==="login") {
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
-          <div style={{fontSize:38,fontWeight:700,letterSpacing:10,background:"linear-gradient(135deg, #F59E0B, #7C3AED)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",marginBottom:6,fontFamily:C.fontTitle,filter:"drop-shadow(0 0 20px rgba(245,158,11,0.4))"}}>KAASH</div>
-          <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
-          <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(232,184,75,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:38,fontWeight:700,letterSpacing:10,background:"linear-gradient(135deg, #E8B84B, #6D28D9)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",marginBottom:6,fontFamily:C.fontTitle,filter:"drop-shadow(0 0 20px rgba(232,184,75,0.4))"}}>KAASH</div>
+          <div style={{fontSize:15,color:C.text,fontFamily:C.fontBody,textAlign:"center",fontWeight:600,marginBottom:8}}>
+            {loginReason==="gate" ? "You've watched your 2 free timelines" : loginReason==="payment" ? "Sign in to unlock premium" : "Welcome to KAASH"}
+          </div>
+          <div style={{fontSize:13,color:C.textSec,fontFamily:C.fontBody,textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>
+            {loginReason==="gate" ? "Sign in to keep exploring all 100 events and 500 timelines — completely free." : loginReason==="payment" ? "You need to be signed in before subscribing." : "Sign in to track your progress, bookmark timelines, and pick up where you left off."}
+          </div>
           <button onClick={async ()=>{
               if(!termsChecked) return;
               try {
@@ -840,10 +844,10 @@ export default function App() {
       : `PAY ₹${plan.total} (incl. GST) →`;
     return (
       <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:`linear-gradient(180deg,rgba(124,58,237,0.20),rgba(245,158,11,0.12),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{background:`linear-gradient(180deg,rgba(109,40,217,0.18),rgba(232,184,75,0.12),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
           <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
-          <div style={{fontSize:40,marginBottom:8,color:C.accent,textShadow:"0 0 20px rgba(245,158,11,0.6)"}}>✦</div>
-          <div style={{fontSize:24,fontWeight:700,letterSpacing:6,background:"linear-gradient(135deg,#F59E0B,#7C3AED)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontFamily:C.fontTitle}}>UNLOCK KAASH</div>
+          <div style={{fontSize:40,marginBottom:8,color:C.accent,textShadow:"0 0 20px rgba(232,184,75,0.6)"}}>✦</div>
+          <div style={{fontSize:24,fontWeight:700,letterSpacing:6,background:"linear-gradient(135deg,#E8B84B,#6D28D9)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontFamily:C.fontTitle}}>UNLOCK KAASH</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>
             {isTWA ? "Billed via Google Play. Cancel anytime in Play Store." : "One price. No ads. Full access."}
           </div>
@@ -852,7 +856,7 @@ export default function App() {
           <div style={{marginBottom:14}}>
             {Object.entries(KAASH_PLANS).map(([planKey,p])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
-                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 24px rgba(245,158,11,0.3)":C.shadow}}>
+                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 24px rgba(232,184,75,0.3)":C.shadow}}>
                 {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.accent,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
@@ -888,7 +892,7 @@ export default function App() {
           {paymentError&&<div style={{background:"rgba(224,99,90,0.14)",border:"1px solid rgba(224,99,90,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
 
           <button onClick={initiateSubscription} disabled={paymentLoading}
-            style={{width:"100%",padding:"15px 0",background:paymentLoading?"#12121F":"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:10,color:paymentLoading?C.textMuted:"#030305",fontSize:14,fontWeight:700,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginTop:14,boxShadow:paymentLoading?"none":"0 8px 32px rgba(124,58,237,0.4),0 0 60px rgba(245,158,11,0.15)"}}>
+            style={{width:"100%",padding:"15px 0",background:paymentLoading?"#12121F":"linear-gradient(135deg,#6D28D9,#E8B84B)",border:"none",borderRadius:10,color:paymentLoading?C.textMuted:"#030305",fontSize:14,fontWeight:700,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginTop:14,boxShadow:paymentLoading?"none":"0 8px 32px rgba(109,40,217,0.4),0 0 60px rgba(232,184,75,0.15)"}}>
             {paymentLoading ? "OPENING PAYMENT..." : ctaLabel}
           </button>
 
@@ -1134,7 +1138,7 @@ export default function App() {
           ) : (
             <div style={{position:"absolute",inset:0,background:event.grad}}>
               <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 30px rgba(245,158,11,0.4)"}}><Play size={26} color="#080A0C" style={{marginLeft:3}}/></div>
+                <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#6D28D9,#E8B84B)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 30px rgba(232,184,75,0.4)"}}><Play size={26} color="#080A0C" style={{marginLeft:3}}/></div>
                 <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary — coming soon</div>
               </div>
               <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
@@ -1244,18 +1248,19 @@ export default function App() {
   });
 
   const Row = ({title,events:evts})=>(
-    <div style={{marginBottom:26}}>
-      <div style={{padding:"0 20px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}><div style={{width:3,height:16,background:C.accent,borderRadius:2}}/><span style={{fontSize:11,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{title}</span></div>
-      <div style={{display:"flex",gap:12,paddingLeft:20,paddingRight:20,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
+    <div style={{marginBottom:28}}>
+      <div style={{padding:"0 20px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:9,letterSpacing:3,color:C.accent,fontFamily:C.fontBody,fontWeight:600,textTransform:"uppercase",opacity:0.9}}>{title}</span>
+        <span style={{fontSize:9,color:C.textMuted,fontFamily:C.fontBody,letterSpacing:1}}>SEE ALL →</span>
+      </div>
+      <div style={{display:"flex",gap:10,paddingLeft:20,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
-          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:130,cursor:"pointer"}}>
-            <div style={{width:130,height:170,background:e.grad,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:8,border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
-              <span style={{fontSize:44}}>{e.emoji}</span>
-              <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 6px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
-              <div style={{position:"absolute",top:8,right:8,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:9,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:140,cursor:"pointer"}}>
+            <div style={{width:140,height:190,background:e.grad,borderRadius:14,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 12px 12px",position:"relative",overflow:"hidden",marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%)"}}/>
+              <div style={{position:"absolute",top:10,left:10,background:"rgba(232,184,75,0.15)",backdropFilter:"blur(8px)",border:"1px solid rgba(232,184,75,0.2)",borderRadius:3,padding:"2px 7px"}}><span style={{fontSize:8,fontWeight:600,color:C.accent,fontFamily:C.fontBody,letterSpacing:1}}>{e.year}</span></div>
+              <div style={{position:"relative"}}><div style={{fontSize:11,fontWeight:700,lineHeight:1.25,color:"#F2EFE8",fontFamily:C.fontTitle}}>{e.short}</div></div>
             </div>
-            <div style={{fontSize:12,fontWeight:700,lineHeight:1.3,color:C.text}}>{e.short}</div>
-            <div style={{fontSize:10,color:C.textMuted,fontFamily:"sans-serif",marginTop:2}}>{e.region}</div>
           </div>
         ))}
       </div>
@@ -1263,18 +1268,19 @@ export default function App() {
   );
 
   const DesktopRow = ({title,events:evts})=>(
-    <div style={{marginBottom:36}}>
-      <div style={{padding:"0 48px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:3,height:18,background:C.accent,borderRadius:2}}/><span style={{fontSize:13,letterSpacing:2,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>{title}</span></div>
-      <div style={{display:"flex",gap:16,paddingLeft:48,paddingRight:48,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
+    <div style={{marginBottom:44}}>
+      <div style={{padding:"0 48px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:10,letterSpacing:3,color:C.accent,fontFamily:C.fontBody,fontWeight:600,textTransform:"uppercase"}}>{title}</span>
+        <span style={{fontSize:10,color:C.textMuted,fontFamily:C.fontBody,letterSpacing:1,cursor:"pointer"}}>SEE ALL →</span>
+      </div>
+      <div style={{display:"flex",gap:16,paddingLeft:48,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
-          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:240,cursor:"pointer"}}>
-            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:"1px solid rgba(245,158,11,0.08)"}}>
-              <span style={{fontSize:52}}>{e.emoji}</span>
-              <div style={{position:"absolute",bottom:10,left:10,background:"rgba(0,0,0,0.7)",borderRadius:4,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
-              <div style={{position:"absolute",top:10,right:10,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:4,padding:"3px 7px"}}><span style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:260,cursor:"pointer"}}>
+            <div className="kaash-tile" style={{width:260,height:155,background:e.grad,borderRadius:12,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 16px 16px",position:"relative",overflow:"hidden",marginBottom:10,border:"1px solid rgba(255,255,255,0.04)"}}>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.75) 100%)"}}/>
+              <div style={{position:"absolute",top:12,left:12,background:"rgba(232,184,75,0.15)",backdropFilter:"blur(8px)",border:"1px solid rgba(232,184,75,0.25)",borderRadius:4,padding:"3px 8px"}}><span style={{fontSize:9,fontWeight:600,color:C.accent,fontFamily:C.fontBody,letterSpacing:1}}>{e.year}</span></div>
+              <div style={{position:"relative"}}><div style={{fontSize:14,fontWeight:700,lineHeight:1.2,color:"#F2EFE8",fontFamily:C.fontTitle,textShadow:"0 1px 8px rgba(0,0,0,0.8)"}}>{e.short}</div><div style={{fontSize:10,color:"rgba(242,239,232,0.6)",fontFamily:C.fontBody,marginTop:4}}>{e.region} · 5 timelines</div></div>
             </div>
-            <div style={{fontSize:13,fontWeight:700,lineHeight:1.3,color:C.text}}>{e.short}</div>
-            <div style={{fontSize:11,color:C.textMuted,fontFamily:"sans-serif",marginTop:2}}>{e.region}</div>
           </div>
         ))}
       </div>
@@ -1292,40 +1298,40 @@ export default function App() {
       <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.fontBody}}>
         <style>{`
           .kaash-tile{transition:transform 0.2s ease, box-shadow 0.2s ease;}
-          .kaash-tile:hover{transform:scale(1.05) translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(245,158,11,0.3),0 0 30px rgba(124,58,237,0.2);z-index:2;}
+          .kaash-tile:hover{transform:scale(1.03) translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,0.9),0 0 0 1px rgba(232,184,75,0.2),0 0 40px rgba(109,40,217,0.15);z-index:2;}
           .kaash-nav-link{transition:color 0.15s ease;}
-          .kaash-nav-link:hover{color:${C.accent} !important;text-shadow:0 0 20px rgba(245,158,11,0.5);letter-spacing:2px;}
+          .kaash-nav-link:hover{color:${C.accent} !important;text-shadow:0 0 20px rgba(232,184,75,0.6);}
           .kaash-cta{transition:background 0.15s ease, transform 0.15s ease;}
-          .kaash-cta:hover{background:${C.accentDark} !important;transform:translateY(-3px);box-shadow:0 12px 40px rgba(245,158,11,0.4),0 0 60px rgba(124,58,237,0.15);}
+          .kaash-cta:hover{filter:brightness(1.1);transform:translateY(-3px);box-shadow:0 12px 40px rgba(232,184,75,0.4),0 0 80px rgba(109,40,217,0.15);}
           .kaash-signin{transition:border-color 0.15s ease, color 0.15s ease;}
           .kaash-signin:hover{border-color:${C.accent} !important;color:${C.accent} !important;}
         `}</style>
-        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:"1px solid rgba(245,158,11,0.08)",background:"rgba(8,10,12,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:"1px solid rgba(232,184,75,0.08)",background:"rgba(8,10,12,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <KaashMark size={28}/>
-            <div><span style={{fontSize:18,fontWeight:700,letterSpacing:6,color:C.accent,fontFamily:C.fontTitle,textShadow:`0 0 20px rgba(245,158,11,0.5), 0 0 60px rgba(124,58,237,0.3)`}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+            <div><span style={{fontSize:18,fontWeight:700,letterSpacing:6,color:C.accent,fontFamily:C.fontTitle,textShadow:`0 0 30px rgba(232,184,75,0.5), 0 0 80px rgba(109,40,217,0.3)`}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
           </div>
           <div style={{display:"flex",gap:24,fontFamily:"sans-serif",fontSize:13}}>
             <span onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} className="kaash-nav-link" style={{color:C.text,fontWeight:700,cursor:"pointer"}}>Home</span>
             {navLinks.map(n=><span key={n.id} onClick={()=>setTab(n.id)} className="kaash-nav-link" style={{color:C.textSec,cursor:"pointer"}}>{n.label}</span>)}
           </div>
           <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:14}}>
-            {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.accentDark}`}}>AD-FREE</div>}
+            {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid rgba(232,184,75,0.2)`}}>AD-FREE</div>}
             {streak>0 && <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{streak}</span></div>}
             {loggedIn
               ? <span onClick={()=>setTab("profile")} className="kaash-nav-link" style={{fontSize:13,fontFamily:"sans-serif",color:C.text,cursor:"pointer",fontWeight:700}}>{userName||"Profile"}</span>
-              : <span onClick={()=>setScreen("login")} className="kaash-signin" style={{fontSize:13,fontFamily:"sans-serif",color:C.text,cursor:"pointer",border:`1px solid ${C.border}`,padding:"6px 16px",borderRadius:6}}>Sign in</span>}
+              : <span onClick={()=>{setLoginReason("direct");setScreen("login");}} className="kaash-signin" style={{fontSize:13,fontFamily:"sans-serif",color:C.text,cursor:"pointer",border:`1px solid ${C.border}`,padding:"6px 16px",borderRadius:6}}>Sign in</span>}
           </div>
         </div>
 
         <div style={{height:420,position:"relative",overflow:"hidden",background:featured.grad,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 48px 40px"}}>
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(8,10,12,0.2) 0%,transparent 30%,rgba(8,10,12,0.7) 70%,${C.bg} 100%)`}}/>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom, rgba(4,4,6,0.1) 0%, transparent 25%, rgba(4,4,6,0.75) 70%, ${C.bg} 100%)`}}/>
           <div style={{position:"relative",maxWidth:560}}>
             <div style={{fontSize:11,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:8}}>★ TIMELINE OF THE WEEK</div>
             <div style={{fontSize:42,fontWeight:900,lineHeight:1.15,marginBottom:10}}>{featured.title}</div>
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginBottom:6}}>{featured.year} · {featured.region}</div>
             <div style={{fontSize:14,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:24}}>{featured.desc}</div>
-            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:6,color:"#030305",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.fontTitle,letterSpacing:3,boxShadow:"0 8px 32px rgba(124,58,237,0.35)"}}>EXPLORE TIMELINES</button>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:C.accent,border:"none",borderRadius:6,color:"#040406",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:C.fontBody,letterSpacing:3,boxShadow:"0 8px 32px rgba(232,184,75,0.3)"}}>EXPLORE TIMELINES</button>
           </div>
         </div>
 
@@ -1344,17 +1350,19 @@ export default function App() {
     const featured=ACTIVE_EVENTS[2]||ACTIVE_EVENTS[0];
     return (
       <div style={{flex:1,overflowY:"auto",paddingBottom:20}}>
-        <div style={{background:featured.grad,minHeight:210,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 22px 22px",position:"relative"}}>
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom,rgba(10,14,20,0.4),transparent,${C.bg})`}}/>
-          <div style={{position:"relative"}}>
-            <div style={{fontSize:9,letterSpacing:3,color:C.accent,fontFamily:"sans-serif",fontWeight:700,marginBottom:4}}>★ TIMELINE OF THE WEEK</div>
-            <div style={{fontSize:22,fontWeight:900,lineHeight:1.2,marginBottom:4}}>{featured.title}</div>
-            <div style={{fontSize:12,color:C.textSec,fontFamily:"sans-serif",marginBottom:14}}>{featured.year} · {featured.region}</div>
-            <button onClick={()=>{setEvent(featured);setScreen("detail");}} style={{padding:"10px 18px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1}}>EXPLORE 5 TIMELINES →</button>
+        <div style={{background:featured.grad,minHeight:260,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 0",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom, rgba(4,4,6,0.1) 0%, transparent 30%, rgba(4,4,6,0.6) 65%, ${C.bg} 100%)`}}/>
+          <div style={{position:"absolute",top:16,left:16,background:"rgba(232,184,75,0.12)",backdropFilter:"blur(10px)",border:"1px solid rgba(232,184,75,0.2)",borderRadius:4,padding:"4px 10px"}}>
+            <span style={{fontSize:8,letterSpacing:3,color:C.accent,fontFamily:C.fontBody,fontWeight:600}}>FEATURED</span>
+          </div>
+          <div style={{position:"relative",padding:"0 20px 24px"}}>
+            <div style={{fontSize:10,letterSpacing:2,color:C.accentLight,fontFamily:C.fontBody,fontWeight:500,marginBottom:8,opacity:0.8}}>{featured.year} · {featured.region}</div>
+            <div style={{fontSize:26,fontWeight:700,lineHeight:1.15,marginBottom:16,fontFamily:C.fontTitle,textShadow:"0 2px 20px rgba(0,0,0,0.8)"}}>{featured.title}</div>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} style={{padding:"11px 22px",background:C.accent,border:"none",borderRadius:6,color:"#040406",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:C.fontBody,letterSpacing:2,boxShadow:"0 4px 24px rgba(232,184,75,0.35)"}}>EXPLORE TIMELINES</button>
           </div>
         </div>
-        <div style={{background:C.surface,display:"flex",justifyContent:"space-around",padding:"12px 16px",marginBottom:20}}>
-          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:900,color:C.accent,fontFamily:"sans-serif"}}>{v}</div><div style={{fontSize:9,letterSpacing:2,color:C.textMuted,fontFamily:"sans-serif"}}>{l}</div></div>))}
+        <div style={{display:"flex",justifyContent:"space-around",padding:"14px 16px",marginBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+          {[["100","EVENTS"],["500","TIMELINES"],["5","ERAS"],["5:00","PER VIDEO"]].map(([v,l])=>(<div key={l} style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:C.accent,fontFamily:C.fontTitle}}>{v}</div><div style={{fontSize:8,letterSpacing:2,color:C.textMuted,fontFamily:C.fontBody,marginTop:2}}>{l}</div></div>))}
         </div>
         <Row title="INDIA'S ALTERNATE HISTORY" events={ACTIVE_EVENTS.filter(e=>e.cat==="india"||e.region==="South Asia")}/>
         <Row title="WORLD WARS & CONFLICTS" events={ACTIVE_EVENTS.filter(e=>e.cat==="wars")}/>
@@ -1373,7 +1381,7 @@ export default function App() {
       </div>
       <div style={{padding:"0 16px"}}>
         {filtered.map(e=>(
-          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:"linear-gradient(135deg,rgba(124,58,237,0.06),rgba(245,158,11,0.04))",borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:"1px solid rgba(124,58,237,0.15)",boxShadow:C.shadow}}>
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:"linear-gradient(135deg,rgba(109,40,217,0.06),rgba(232,184,75,0.04))",borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:"1px solid rgba(109,40,217,0.15)",boxShadow:C.shadow}}>
             <div style={{width:100,minHeight:90,background:e.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}><span style={{fontSize:32}}>{e.emoji}</span><div style={{position:"absolute",bottom:7,left:7,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div></div>
             <div style={{padding:"12px 12px",flex:1}}><div style={{fontSize:9,color:C.accent,background:C.accentBg,borderRadius:3,padding:"2px 6px",display:"inline-block",marginBottom:6,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>{e.era}</div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{e.desc.substring(0,60)}...</div><div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>⑂ 5 alternate timelines · {e.region}</div></div>
           </div>
@@ -1490,11 +1498,11 @@ export default function App() {
     const bookmarkedItems = ACTIVE_EVENTS.flatMap(e=>e.scenarios.filter(sc=>bookmarks.has(e.id+"_"+sc.num)).map(sc=>({event:e,scenario:sc})));
     return (
       <div style={{flex:1,overflowY:"auto",padding:"0 0 20px"}}>
-        <div style={{background:`linear-gradient(135deg,${C.accentBg},transparent)`,padding:"40px 24px 24px",textAlign:"center"}}>
-          <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.accent},${C.accentDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🎓</div>
+        <div style={{background:`radial-gradient(ellipse 100% 200% at 50% -50%, rgba(109,40,217,0.2) 0%, rgba(232,184,75,0.06) 50%, transparent 75%)`,padding:"40px 24px 24px",textAlign:"center"}}>
+          <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.purple},${C.accent})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px",boxShadow:`0 0 30px rgba(109,40,217,0.4), 0 0 60px rgba(232,184,75,0.15)`}}>🎓</div>
           <div style={{fontSize:20,fontWeight:900}}>{loggedIn?(userName||"Explorer"):"Guest Explorer"}</div>
           <div style={{fontSize:11,color:C.accent,letterSpacing:2,fontFamily:"sans-serif",marginTop:4}}>{loggedIn?rank:"Not signed in"}</div>
-          {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:20,display:"inline-block",fontSize:11,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
+          {premium ? <div style={{marginTop:10,padding:"6px 16px",background:C.accentBg,border:`1px solid rgba(232,184,75,0.2)`,borderRadius:20,display:"inline-block",fontSize:11,color:C.accent,fontFamily:"sans-serif",fontWeight:700}}>✦ AD-FREE MEMBER</div>
             : <button onClick={()=>setPaywall(true)} style={{marginTop:12,padding:"8px 20px",background:C.accent,border:"none",borderRadius:8,color:C.bg,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif"}}>{isTWA ? "GO AD-FREE — GOOGLE PLAY" : "GO AD-FREE — ₹49 + GST/MONTH"}</button>}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 20px"}}>
@@ -1558,13 +1566,13 @@ export default function App() {
 
   return (
     <div style={s}>
-      <div style={{background:C.surface,padding:"44px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+      <div style={{background:"rgba(4,4,6,0.85)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",padding:"44px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid rgba(232,184,75,0.08)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <KaashMark size={28}/>
-          <div><span style={{fontSize:20,fontWeight:900,letterSpacing:4,color:C.text}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+          <div><span style={{fontSize:18,fontWeight:900,letterSpacing:6,color:C.accent,fontFamily:C.fontTitle,textShadow:"0 0 30px rgba(232,184,75,0.5), 0 0 80px rgba(109,40,217,0.3)"}}>KAASH</span><span style={{fontSize:8,color:C.textMuted,letterSpacing:3,fontFamily:C.fontBody,marginLeft:10,opacity:0.6}}>कaश</span></div>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid ${C.accentDark}`}}>AD-FREE</div>}
+          {premium && <div style={{fontSize:9,color:C.accent,fontFamily:"sans-serif",fontWeight:700,background:C.accentBg,padding:"4px 8px",borderRadius:12,border:`1px solid rgba(232,184,75,0.2)`}}>AD-FREE</div>}
           {streak>0 && <div style={{display:"flex",alignItems:"center",gap:4,background:C.card,borderRadius:20,padding:"5px 10px"}}><Flame size={14} color={C.accent2}/><span style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"sans-serif"}}>{streak}</span></div>}
         </div>
       </div>
@@ -1573,8 +1581,8 @@ export default function App() {
       {tab==="new"&&<WhatsNewTab/>}
       {tab==="search"&&<SearchTab/>}
       {tab==="profile"&&<ProfileTab/>}
-      <div style={{background:"rgba(3,3,5,0.98)",borderTop:"1px solid rgba(124,58,237,0.2)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
-        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted,textShadow:tab===t.id?`0 0 16px rgba(245,158,11,0.6), 0 0 40px rgba(124,58,237,0.4)`:"none"}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
+      <div style={{background:"rgba(3,3,5,0.98)",borderTop:"1px solid rgba(109,40,217,0.2)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
+        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted,textShadow:tab===t.id?`0 0 16px rgba(232,184,75,0.6), 0 0 40px rgba(109,40,217,0.4)`:"none"}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
       </div>
     </div>
   );
@@ -1628,7 +1636,7 @@ function AdScreen({onDone,onUpgrade,isTWA}){
     <div style={{display:"flex",flexDirection:"column",background:C.bg,color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#161D29,#0A0E14)",position:"relative"}}>
         <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,position:"absolute",top:48,left:20}}>ADVERTISEMENT</div>
-        <div style={{fontSize:52,marginBottom:16,filter:"drop-shadow(0 0 16px rgba(245,158,11,0.4))"}}>🎬</div>
+        <div style={{fontSize:52,marginBottom:16,filter:"drop-shadow(0 0 16px rgba(232,184,75,0.4))"}}>🎬</div>
         <div style={{fontSize:15,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.7,fontFamily:"Georgia,serif",letterSpacing:0.3}}>A brief moment before your timeline.<br/>This is how KAASH stays free.</div>
         <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.accent,fontWeight:900,fontSize:18}}>{count}</span></div>
       </div>

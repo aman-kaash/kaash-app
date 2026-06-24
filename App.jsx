@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 
+// Inject premium fonts
+if(typeof document !== "undefined" && !document.getElementById("kaash-fonts")){
+  const link = document.createElement("link");
+  link.id = "kaash-fonts";
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&family=Cinzel+Decorative:wght@400;700&display=swap";
+  document.head.appendChild(link);
+}
+
 // ─── KAASH v1.14 ─ Cinematic Gold Design System ────────────────────
 // Player: YouTube-style, BOTH orientations, user-controlled.
 // Design: Cinematic gold palette, prestige documentary aesthetic.
@@ -97,14 +106,29 @@ const KAASH_PLANS = {
   },
 };
 
+// ─── DARK MATTER DESIGN SYSTEM v1.15 ─────────────────────────────
+// Obsidian blacks. Ultraviolet-to-amber gradient accent.
+// Typography: Cinzel (titles) + Inter (body).
+// Every surface glows. Nothing is flat.
 const C = {
-  bg:"#080A0C", surface:"#0F1114", card:"#141619", elevated:"#1C1E22", border:"#2A2820",
-  accent:"#C9A84C", accentLight:"#E8CA7A", accentDark:"#9A7A2E", accentBg:"rgba(201,168,76,0.10)",
-  accent2:"#E8724A", accent2Bg:"rgba(232,114,74,0.12)",
-  red:"#E05A5A", green:"#5ABF7A", greenBg:"rgba(90,191,122,0.14)",
-  text:"#F0EDE8", textSec:"#9A9490", textMuted:"#5C5850",
-  shadow:"0 2px 16px rgba(0,0,0,0.5)", shadowLg:"0 8px 32px rgba(0,0,0,0.6)",
-  glow:"0 0 40px rgba(201,168,76,0.15)",
+  bg:"#030305", surface:"#08080F", card:"#0D0D18", elevated:"#12121F", border:"#1E1E30",
+  accent:"#F59E0B",        // electric amber — primary CTA, highlights
+  accentViolet:"#7C3AED",  // ultraviolet — gradients, glows
+  accentLight:"#FCD34D",
+  accentDark:"#D97706",
+  accentBg:"rgba(245,158,11,0.08)",
+  accent2:"#EC4899",       // hot magenta — secondary highlights
+  accent2Bg:"rgba(236,72,153,0.10)",
+  red:"#F87171", green:"#34D399", greenBg:"rgba(52,211,153,0.12)",
+  text:"#F8F6F0", textSec:"#8B8A9A", textMuted:"#4A4860",
+  shadow:"0 4px 24px rgba(0,0,0,0.7)", shadowLg:"0 16px 48px rgba(0,0,0,0.8)",
+  // Gradient strings for convenience
+  gradAccent:"linear-gradient(135deg, #7C3AED, #F59E0B)",
+  gradCard:"linear-gradient(135deg, rgba(124,58,237,0.15), rgba(245,158,11,0.08))",
+  glowAmber:"0 0 30px rgba(245,158,11,0.25)",
+  glowViolet:"0 0 30px rgba(124,58,237,0.25)",
+  fontTitle:"'Cinzel', 'Georgia', serif",
+  fontBody:"'Inter', 'system-ui', sans-serif",
 };
 
 // ─── PROGRESS SYSTEM ──────────────────────────────────────────────
@@ -124,7 +148,7 @@ const todayStr = () => new Date().toISOString().slice(0,10);
 const yesterdayStr = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
 
 const EVENTS = [
-  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#5C1A1A,#2A0A0A,#080A0C)", badge:"WW1 Scholar",
+  { id:"ww1", title:"Assassination of Archduke Franz Ferdinand", short:"The Shot That Started WW1", year:1914, era:"MODERN", region:"Europe", cat:"wars", emoji:"🔫", grad:"linear-gradient(135deg,#4A0010,#1A0030,#030305)", badge:"WW1 Scholar",
     desc:"On June 28, 1914, a single bullet in Sarajevo triggered a chain reaction killing 20 million and reshaping every nation on Earth.",
     tags:["WW1","Europe","Nationalism"],
     scenarios:[
@@ -135,7 +159,7 @@ const EVENTS = [
       {num:5,title:"Princip Hits the Wrong Target",tagline:"What if he killed a minor official?",ripples:["Austria-Hungary reforms — survives as federal state into 1930s","Delayed but smaller world war in 1924 — 3 million not 20 million dead","No Versailles humiliation — Hitler never rises to power","Russian monarchy survives longer, gentle reforms avoid revolution","The 20th century is brutal but not apocalyptic"],narrative:"The Sarajevo plot goes slightly wrong. Princip fires — but shoots Count von Berchtold, Austria's Foreign Minister, instead of the Archduke. Franz Ferdinand survives.\n\nAustria protests, negotiates, gets concessions from Serbia. No war. Europe avoids 1914's catastrophe.\n\nBut the underlying tensions find release in a different crisis a decade later. A smaller delayed war comes in 1924 — 3 million dead instead of 20 million. Terrible, but survivable."},
     ]
   },
-  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#1A2A4A,#0A1020,#080A0C)", badge:"WW2 Expert",
+  { id:"ww2", title:"World War II Begins", short:"The War That Shaped Everything", year:1939, era:"MODERN", region:"Global", cat:"wars", emoji:"💣", grad:"linear-gradient(135deg,#0A1A3A,#0A0A2A,#030305)", badge:"WW2 Expert",
     desc:"The deadliest conflict in human history — 70-85 million dead, the Holocaust, the atomic bomb, and a world order remade from its ashes.",
     tags:["Holocaust","Nuclear Age","Fascism"],
     scenarios:[
@@ -146,7 +170,7 @@ const EVENTS = [
       {num:5,title:"Atomic Bomb Never Used",tagline:"What if Truman chose invasion?",ripples:["1 million+ Allied deaths in Japanese invasion","Japan physically destroyed through conventional war — decades slower recovery","Nuclear taboo never exists — Cold War catastrophically more dangerous","Anti-nuclear movement never exists — no Hiroshima imagery to point to","Korean War: South Korea almost certainly falls to the North"],narrative:"Summer 1945. Truman chooses Operation Downfall over the atomic bomb. The ground invasion of Japan begins November 1945. One million Allied casualties. Five to ten million Japanese killed.\n\nThe bomb exists — but having never been used, its psychological weight is different. When the Soviets test their device in 1950, there is no 'you already crossed that line' dynamic.\n\nThe Cold War nearly becomes hot — three times. The horror of Hiroshima that restrained real leaders does not exist in this world."},
     ]
   },
-  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#4A2E00,#1A0A00,#080A0C)", badge:"India Historian",
+  { id:"partition", title:"Partition of British India", short:"The Midnight Division", year:1947, era:"CONTEMPORARY", region:"South Asia", cat:"india", emoji:"🇮🇳", grad:"linear-gradient(135deg,#3A1A00,#001A0A,#030305)", badge:"India Historian",
     desc:"August 1947: British India divided into two nations overnight. Up to 2 million killed, 15 million displaced, and a nuclear rivalry born that shapes South Asia today.",
     tags:["India","Pakistan","Independence"],
     scenarios:[
@@ -157,7 +181,7 @@ const EVENTS = [
       {num:5,title:"Slower Partition — No Violence",tagline:"What if Britain stayed until 1960?",ripples:["Partition violence never happens — 2 million lives saved overnight","South Asian confederation with open borders established by 1960","Kashmir integrated through negotiation — no Line of Control","Neither India nor Pakistan develops nuclear weapons until 1990s","The subcontinent's most talented people never flee refugee crisis"],narrative:"A slow, negotiated transfer — province by province over 13 years — begins in 1947 but completes in 1960. The violence of 1947 never happens. Communities migrate gradually, retaining property and dignity.\n\nBy 1960, a confederation emerges: India and Pakistan as separate nations but within a South Asian economic community — like the EU, 30 years early.\n\nThe resources spent on three wars and two nuclear programs are channelled into roads, hospitals, and schools for one billion people."},
     ]
   },
-  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#0A0A3A,#1A0A2A,#080A0C)", badge:"Space Pioneer",
+  { id:"moon", title:"Apollo 11 Moon Landing", short:"The Leap That Almost Wasn't", year:1969, era:"CONTEMPORARY", region:"Global", cat:"science", emoji:"🌙", grad:"linear-gradient(135deg,#050520,#100030,#030305)", badge:"Space Pioneer",
     desc:"July 20, 1969. Humanity's greatest achievement. But what if the most audacious mission in history had gone differently?",
     tags:["Space Race","Cold War","NASA"],
     scenarios:[
@@ -168,7 +192,7 @@ const EVENTS = [
       {num:5,title:"China Lands First in 1969",tagline:"What if there were three entrants?",ripples:["Three-way space race drives unprecedented global investment","China becomes space and tech superpower 50 years ahead of schedule","Asian century begins in 1975 not 2000","Cold War becomes three-polar — fundamentally different geopolitics","Space becomes Asia-Pacific dominated"],narrative:"China, which in reality had its own quietly cancelled lunar program, succeeds in this timeline. July 25, 1969: five days after Armstrong, a Chinese taikonaut plants the five-star red flag on the lunar surface.\n\nThree flags on the Moon within a week. A three-way space race begins — and with it, a three-polar Cold War.\n\nChina becomes a technology superpower in the 1970s instead of the 2000s. The Asian century begins 25 years early."},
     ]
   },
-  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#3A2800,#1A1000,#080A0C)", badge:"Ancient Scholar",
+  { id:"alexander", title:"Alexander the Great Survives", short:"The King Who Lived On", year:323, era:"ANCIENT", region:"Global", cat:"ancient", emoji:"⚔️", grad:"linear-gradient(135deg,#2A1800,#1A0800,#030305)", badge:"Ancient Scholar",
     desc:"Alexander the Great died at 32 in Babylon — possibly the most consequential early death in history. What if he had lived another 40 years?",
     tags:["Ancient","Alexander","Greece"],
     scenarios:[
@@ -179,7 +203,7 @@ const EVENTS = [
       {num:5,title:"Alexander Reaches the Americas",tagline:"What if he sailed west?",ripples:["Old World meets New World 1800 years before Columbus","Native American civilizations encounter Greek science early","Disease still spreads but from much smaller initial contact","Two parallel civilizations develop in contact from 280 BC","The world of 2024 has 1800 more years of cross-cultural exchange"],narrative:"310 BC. Alexander, obsessed with what lies beyond the Pillars of Hercules, commissions a massive fleet. Sailing west from Carthage, after months at sea, his ships reach the Caribbean.\n\nThe encounter is different from Columbus's: Alexander is curious, not acquisitive. He establishes a trading colony. Greek mathematics spreads; Mesoamerican astronomy flows east.\n\nTwo civilizations in contact from 280 BC have 1,800 more years of exchange."},
     ]
   },
-  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#0A2A1A,#001A0A,#080A0C)", badge:"Cold War Analyst",
+  { id:"cuban", title:"Cuban Missile Crisis", short:"13 Days That Nearly Ended Everything", year:1962, era:"CONTEMPORARY", region:"Global", cat:"wars", emoji:"☢️", grad:"linear-gradient(135deg,#001A0A,#0A2A00,#030305)", badge:"Cold War Analyst",
     desc:"October 1962: the closest humanity has ever come to nuclear war. 13 days when a single wrong decision could have ended civilization.",
     tags:["Cold War","Nuclear","Kennedy"],
     scenarios:[
@@ -394,11 +418,15 @@ export default function App() {
     // graph is fully resolved before any of its exports are used.
     loadFirebase().then((fb) => {
       if (cancelled) return;
-      // Load Razorpay checkout.js script
-      const rzpScript = document.createElement("script");
-      rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
-      rzpScript.async = true;
-      document.body.appendChild(rzpScript);
+      // Load Razorpay checkout.js script eagerly on app mount
+      if(!document.querySelector('script[src*="razorpay"]')){
+        const rzpScript = document.createElement("script");
+        rzpScript.src = "https://checkout.razorpay.com/v1/checkout.js";
+        rzpScript.async = true;
+        rzpScript.onload = () => console.log("Razorpay ready");
+        rzpScript.onerror = () => console.warn("Razorpay failed to load");
+        document.body.appendChild(rzpScript);
+      }
 
       // Load events from Firestore and MERGE onto the built-in catalog.
       //
@@ -501,7 +529,27 @@ export default function App() {
 
   const initiatePayment = async () => {
     if(!fb || !fb.auth.currentUser){ setPaywall(false); setScreen("login"); return; }
-    if(!window.Razorpay){ setPaymentError("Payment system loading. Please wait a moment and try again."); return; }
+    // If Razorpay script hasn't loaded yet, load it now and retry
+    if(!window.Razorpay){
+      setPaymentError("Loading payment system...");
+      await new Promise((resolve, reject) => {
+        if(document.querySelector('script[src*="razorpay"]')){
+          // Script tag exists but not loaded yet — wait for it
+          const existing = document.querySelector('script[src*="razorpay"]');
+          existing.onload = resolve;
+          existing.onerror = reject;
+          setTimeout(resolve, 5000); // fallback timeout
+        } else {
+          const s = document.createElement("script");
+          s.src = "https://checkout.razorpay.com/v1/checkout.js";
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        }
+      });
+      setPaymentError("");
+      if(!window.Razorpay){ setPaymentError("Payment system unavailable. Please refresh the page."); return; }
+    }
     setPaymentLoading(true); setPaymentError("");
     try {
       const res = await fetch("/api/create-order",{
@@ -638,7 +686,7 @@ export default function App() {
     setUpNextScenario(sc); setUpNextEvent(ev); setUpNextCount(10); setScreen("upnext");
   };
 
-  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:"'Georgia','Times New Roman',serif", height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
+  const s = { display:"flex", flexDirection:"column", background:C.bg, color:C.text, fontFamily:C.fontBody, height:640, width:"100%", maxWidth:390, margin:"0 auto", overflow:"hidden", position:"relative" };
 
   const attemptWatch = (sc, ev) => {
     setScenario(sc); setEvent(ev); setExpandN(false); setExpandR(false);
@@ -653,7 +701,7 @@ export default function App() {
   // localStorage flag: kaash_age_verified
   if (screen==="agegate") {
     return (
-      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.10) 0%, rgba(232,114,74,0.04) 55%, ${C.bg} 78%)`}}>
+      <div style={{...s,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.04) 55%, ${C.bg} 78%)`}}>
         <KaashMark size={44}/>
         <div style={{marginTop:20,marginBottom:4,fontSize:28,fontWeight:900,letterSpacing:4,color:C.text,textAlign:"center"}}>KAASH</div>
         <div style={{fontSize:11,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginBottom:40}}>कaश · ALTERNATE HISTORY</div>
@@ -664,7 +712,7 @@ export default function App() {
             By continuing, you confirm you are <strong>13 years of age or older</strong>. If you are between 13–17, a parent or guardian has consented to your use of this app.
           </div>
           <button onClick={()=>{ localStorage.setItem("kaash_age_verified","1"); if(!localStorage.getItem("kaash_onboarded")) setScreen("onboard"); else setScreen("home"); }}
-            style={{width:"100%",padding:"14px 0",background:C.accent,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:1,marginBottom:12}}>
+            style={{width:"100%",padding:"14px 0",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:10,color:"#030305",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginBottom:12,boxShadow:"0 6px 24px rgba(124,58,237,0.35)"}}>
             I AM 13 OR OLDER — CONTINUE
           </button>
           <button onClick={()=>{ window.location.href="https://www.google.com"; }}
@@ -691,8 +739,8 @@ export default function App() {
     const sl=slides[slide];
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.12) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
-          <div style={{fontSize:64,marginBottom:20,filter:"drop-shadow(0 0 20px rgba(201,168,76,0.3))"}}>🎞</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:64,marginBottom:20,filter:"drop-shadow(0 0 20px rgba(124,58,237,0.4))"}}>🎞</div>
           <div style={{fontSize:38,fontWeight:900,letterSpacing:6,color:C.accent,marginBottom:8,textAlign:"center"}}>{sl.title}</div>
           <div style={{fontSize:13,color:C.accent2,letterSpacing:2,marginBottom:24,textAlign:"center",fontFamily:"sans-serif",textTransform:"uppercase"}}>{sl.sub}</div>
           <div style={{fontSize:15,color:C.textSec,lineHeight:1.7,textAlign:"center",fontFamily:"sans-serif",maxWidth:320}}>{sl.body}</div>
@@ -731,8 +779,8 @@ export default function App() {
   if (screen==="login") {
     return (
       <div style={s}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(201,168,76,0.12) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
-          <div style={{fontSize:34,fontWeight:900,letterSpacing:8,color:C.accent,marginBottom:6,fontFamily:"Georgia,serif",textShadow:"0 0 30px rgba(201,168,76,0.4)"}}>KAASH</div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",background:`radial-gradient(ellipse at 40% 20%, rgba(245,158,11,0.10) 0%, rgba(232,114,74,0.05) 55%, ${C.bg} 78%)`}}>
+          <div style={{fontSize:38,fontWeight:700,letterSpacing:10,background:"linear-gradient(135deg, #F59E0B, #7C3AED)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",marginBottom:6,fontFamily:C.fontTitle,filter:"drop-shadow(0 0 20px rgba(245,158,11,0.4))"}}>KAASH</div>
           <div style={{fontSize:14,color:C.text,fontFamily:"sans-serif",textAlign:"center",fontWeight:600,marginBottom:8}}>You've watched your 2 free timelines</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",textAlign:"center",lineHeight:1.6,marginBottom:32,maxWidth:300}}>Sign in to keep exploring all 100 events and 500 timelines — completely free.</div>
           <button onClick={async ()=>{
@@ -792,10 +840,10 @@ export default function App() {
       : `PAY ₹${plan.total} (incl. GST) →`;
     return (
       <div style={{...s,overflowY:"auto"}}>
-        <div style={{background:`linear-gradient(180deg,rgba(201,168,76,0.18),rgba(232,114,74,0.08),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{background:`linear-gradient(180deg,rgba(124,58,237,0.20),rgba(245,158,11,0.12),transparent)`,padding:"50px 24px 20px",textAlign:"center",position:"relative"}}>
           <button onClick={()=>{setPaywall(false);setPaymentError("");}} style={{position:"absolute",top:50,left:16,background:"transparent",border:"none",color:C.textMuted,cursor:"pointer",fontSize:20}}>✕</button>
-          <div style={{fontSize:40,marginBottom:8,color:C.accent,textShadow:"0 0 20px rgba(201,168,76,0.6)"}}>✦</div>
-          <div style={{fontSize:26,fontWeight:900,letterSpacing:4,color:C.accent,fontFamily:"Georgia,serif"}}>GO AD‑FREE</div>
+          <div style={{fontSize:40,marginBottom:8,color:C.accent,textShadow:"0 0 20px rgba(245,158,11,0.6)"}}>✦</div>
+          <div style={{fontSize:24,fontWeight:700,letterSpacing:6,background:"linear-gradient(135deg,#F59E0B,#7C3AED)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontFamily:C.fontTitle}}>UNLOCK KAASH</div>
           <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginTop:8,lineHeight:1.6}}>
             {isTWA ? "Billed via Google Play. Cancel anytime in Play Store." : "One price. No ads. Full access."}
           </div>
@@ -804,7 +852,7 @@ export default function App() {
           <div style={{marginBottom:14}}>
             {Object.entries(KAASH_PLANS).map(([planKey,p])=>(
               <div key={planKey} onClick={()=>setSelectedPlan(planKey)}
-                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 24px rgba(201,168,76,0.25)":C.shadow}}>
+                style={{background:selectedPlan===planKey?C.accentBg:C.card,border:`${selectedPlan===planKey?2:1}px solid ${selectedPlan===planKey?C.accent:C.border}`,borderRadius:12,padding:"16px",marginBottom:10,cursor:"pointer",position:"relative",boxShadow:selectedPlan===planKey?"0 4px 24px rgba(245,158,11,0.3)":C.shadow}}>
                 {planKey==="yearly"&&<div style={{position:"absolute",top:-1,right:14,background:C.accent,color:C.bg,fontSize:9,fontWeight:900,padding:"3px 8px",borderRadius:"0 0 6px 6px",letterSpacing:1}}>BEST VALUE</div>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
@@ -840,7 +888,7 @@ export default function App() {
           {paymentError&&<div style={{background:"rgba(224,99,90,0.14)",border:"1px solid rgba(224,99,90,0.4)",borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.red,fontFamily:"sans-serif",lineHeight:1.5}}>{paymentError}</div>}
 
           <button onClick={initiateSubscription} disabled={paymentLoading}
-            style={{width:"100%",padding:"15px 0",background:paymentLoading?C.elevated:C.accent,border:"none",borderRadius:10,color:paymentLoading?C.textMuted:C.bg,fontSize:14,fontWeight:900,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:"sans-serif",letterSpacing:1,marginTop:14}}>
+            style={{width:"100%",padding:"15px 0",background:paymentLoading?"#12121F":"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:10,color:paymentLoading?C.textMuted:"#030305",fontSize:14,fontWeight:700,cursor:paymentLoading?"not-allowed":"pointer",fontFamily:C.fontTitle,letterSpacing:3,marginTop:14,boxShadow:paymentLoading?"none":"0 8px 32px rgba(124,58,237,0.4),0 0 60px rgba(245,158,11,0.15)"}}>
             {paymentLoading ? "OPENING PAYMENT..." : ctaLabel}
           </button>
 
@@ -1086,7 +1134,7 @@ export default function App() {
           ) : (
             <div style={{position:"absolute",inset:0,background:event.grad}}>
               <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <div style={{width:56,height:56,borderRadius:"50%",background:`rgba(201,168,76,0.9)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 30px rgba(201,168,76,0.4)"}}><Play size={26} color="#080A0C" style={{marginLeft:3}}/></div>
+                <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 30px rgba(245,158,11,0.4)"}}><Play size={26} color="#080A0C" style={{marginLeft:3}}/></div>
                 <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>5-minute documentary — coming soon</div>
               </div>
               <div style={{position:"absolute",top:"42%",right:16,fontSize:13,color:"rgba(255,255,255,0.22)",fontWeight:900,letterSpacing:2,fontFamily:"sans-serif",transform:"rotate(-12deg)",pointerEvents:"none"}}>KAASH</div>
@@ -1220,7 +1268,7 @@ export default function App() {
       <div style={{display:"flex",gap:16,paddingLeft:48,paddingRight:48,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
         {evts.map(e=>(
           <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{flexShrink:0,width:240,cursor:"pointer"}}>
-            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:"1px solid rgba(201,168,76,0.08)"}}>
+            <div className="kaash-tile" style={{width:240,height:135,background:e.grad,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",marginBottom:10,border:"1px solid rgba(245,158,11,0.08)"}}>
               <span style={{fontSize:52}}>{e.emoji}</span>
               <div style={{position:"absolute",bottom:10,left:10,background:"rgba(0,0,0,0.7)",borderRadius:4,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div>
               <div style={{position:"absolute",top:10,right:10,background:C.accentBg,border:`1px solid ${C.accentDark}`,borderRadius:4,padding:"3px 7px"}}><span style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>5 ⑂</span></div>
@@ -1241,21 +1289,21 @@ export default function App() {
     const featured=ACTIVE_EVENTS[2]||ACTIVE_EVENTS[0];
     const navLinks=[{id:"explore",label:"Browse"},{id:"new",label:"New"},{id:"search",label:"Search"}];
     return (
-      <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Georgia,serif"}}>
+      <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.fontBody}}>
         <style>{`
           .kaash-tile{transition:transform 0.2s ease, box-shadow 0.2s ease;}
-          .kaash-tile:hover{transform:scale(1.05);box-shadow:0 12px 40px rgba(201,168,76,0.25),0 0 0 1px rgba(201,168,76,0.2);z-index:2;}
+          .kaash-tile:hover{transform:scale(1.05) translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(245,158,11,0.3),0 0 30px rgba(124,58,237,0.2);z-index:2;}
           .kaash-nav-link{transition:color 0.15s ease;}
-          .kaash-nav-link:hover{color:${C.accent} !important;text-shadow:0 0 20px rgba(201,168,76,0.4);}
+          .kaash-nav-link:hover{color:${C.accent} !important;text-shadow:0 0 20px rgba(245,158,11,0.5);letter-spacing:2px;}
           .kaash-cta{transition:background 0.15s ease, transform 0.15s ease;}
-          .kaash-cta:hover{background:${C.accentDark} !important;transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,0.35);}
+          .kaash-cta:hover{background:${C.accentDark} !important;transform:translateY(-3px);box-shadow:0 12px 40px rgba(245,158,11,0.4),0 0 60px rgba(124,58,237,0.15);}
           .kaash-signin{transition:border-color 0.15s ease, color 0.15s ease;}
           .kaash-signin:hover{border-color:${C.accent} !important;color:${C.accent} !important;}
         `}</style>
-        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:"1px solid rgba(201,168,76,0.08)",background:"rgba(8,10,12,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:36,padding:"18px 48px",borderBottom:"1px solid rgba(245,158,11,0.08)",background:"rgba(8,10,12,0.96)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <KaashMark size={28}/>
-            <div><span style={{fontSize:20,fontWeight:900,letterSpacing:5,color:C.accent,textShadow:"0 0 20px rgba(201,168,76,0.4)"}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
+            <div><span style={{fontSize:18,fontWeight:700,letterSpacing:6,color:C.accent,fontFamily:C.fontTitle,textShadow:`0 0 20px rgba(245,158,11,0.5), 0 0 60px rgba(124,58,237,0.3)`}}>KAASH</span><span style={{fontSize:9,color:C.textMuted,letterSpacing:2,fontFamily:"sans-serif",marginLeft:8}}>कaश</span></div>
           </div>
           <div style={{display:"flex",gap:24,fontFamily:"sans-serif",fontSize:13}}>
             <span onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} className="kaash-nav-link" style={{color:C.text,fontWeight:700,cursor:"pointer"}}>Home</span>
@@ -1277,7 +1325,7 @@ export default function App() {
             <div style={{fontSize:42,fontWeight:900,lineHeight:1.15,marginBottom:10}}>{featured.title}</div>
             <div style={{fontSize:13,color:C.textSec,fontFamily:"sans-serif",marginBottom:6}}>{featured.year} · {featured.region}</div>
             <div style={{fontSize:14,color:C.textSec,fontFamily:"sans-serif",lineHeight:1.6,marginBottom:24}}>{featured.desc}</div>
-            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:C.accent,border:"none",borderRadius:6,color:"#080A0C",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"sans-serif",letterSpacing:2,boxShadow:"0 4px 20px rgba(201,168,76,0.4)"}}>EXPLORE 5 TIMELINES →</button>
+            <button onClick={()=>{setEvent(featured);setScreen("detail");}} className="kaash-cta" style={{padding:"13px 28px",background:"linear-gradient(135deg,#7C3AED,#F59E0B)",border:"none",borderRadius:6,color:"#030305",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.fontTitle,letterSpacing:3,boxShadow:"0 8px 32px rgba(124,58,237,0.35)"}}>EXPLORE TIMELINES</button>
           </div>
         </div>
 
@@ -1325,7 +1373,7 @@ export default function App() {
       </div>
       <div style={{padding:"0 16px"}}>
         {filtered.map(e=>(
-          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:C.card,borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:`1px solid ${C.border}`,boxShadow:C.shadow}}>
+          <div key={e.id} onClick={()=>{setEvent(e);setScreen("detail");}} style={{background:"linear-gradient(135deg,rgba(124,58,237,0.06),rgba(245,158,11,0.04))",borderRadius:12,marginBottom:10,display:"flex",cursor:"pointer",overflow:"hidden",border:"1px solid rgba(124,58,237,0.15)",boxShadow:C.shadow}}>
             <div style={{width:100,minHeight:90,background:e.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}><span style={{fontSize:32}}>{e.emoji}</span><div style={{position:"absolute",bottom:7,left:7,background:"rgba(0,0,0,0.7)",borderRadius:3,padding:"2px 5px"}}><span style={{fontSize:10,fontWeight:700,color:C.accent,fontFamily:"sans-serif"}}>{e.year}</span></div></div>
             <div style={{padding:"12px 12px",flex:1}}><div style={{fontSize:9,color:C.accent,background:C.accentBg,borderRadius:3,padding:"2px 6px",display:"inline-block",marginBottom:6,fontFamily:"sans-serif",fontWeight:700,letterSpacing:1}}>{e.era}</div><div style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4}}>{e.title}</div><div style={{fontSize:11,color:C.textSec,fontFamily:"sans-serif",marginBottom:6,lineHeight:1.4}}>{e.desc.substring(0,60)}...</div><div style={{fontSize:10,color:C.accent,fontFamily:"sans-serif"}}>⑂ 5 alternate timelines · {e.region}</div></div>
           </div>
@@ -1525,8 +1573,8 @@ export default function App() {
       {tab==="new"&&<WhatsNewTab/>}
       {tab==="search"&&<SearchTab/>}
       {tab==="profile"&&<ProfileTab/>}
-      <div style={{background:"#0D0C09",borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
-        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted,textShadow:tab===t.id?"0 0 12px rgba(201,168,76,0.4)":"none"}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
+      <div style={{background:"rgba(3,3,5,0.98)",borderTop:"1px solid rgba(124,58,237,0.2)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",display:"flex",justifyContent:"space-around",padding:"10px 0 14px",flexShrink:0}}>
+        {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 16px",color:tab===t.id?C.accent:C.textMuted,textShadow:tab===t.id?`0 0 16px rgba(245,158,11,0.6), 0 0 40px rgba(124,58,237,0.4)`:"none"}}>{t.icon}<span style={{fontSize:10,fontFamily:"sans-serif",fontWeight:tab===t.id?700:400,letterSpacing:0.5}}>{t.label}</span></button>))}
       </div>
     </div>
   );
@@ -1580,7 +1628,7 @@ function AdScreen({onDone,onUpgrade,isTWA}){
     <div style={{display:"flex",flexDirection:"column",background:C.bg,color:C.text,fontFamily:"sans-serif",height:640,width:"100%",maxWidth:390,margin:"0 auto",position:"relative"}}>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#161D29,#0A0E14)",position:"relative"}}>
         <div style={{fontSize:10,letterSpacing:2,color:C.textMuted,position:"absolute",top:48,left:20}}>ADVERTISEMENT</div>
-        <div style={{fontSize:52,marginBottom:16,filter:"drop-shadow(0 0 16px rgba(201,168,76,0.4))"}}>🎬</div>
+        <div style={{fontSize:52,marginBottom:16,filter:"drop-shadow(0 0 16px rgba(245,158,11,0.4))"}}>🎬</div>
         <div style={{fontSize:15,color:C.textSec,textAlign:"center",maxWidth:260,lineHeight:1.7,fontFamily:"Georgia,serif",letterSpacing:0.3}}>A brief moment before your timeline.<br/>This is how KAASH stays free.</div>
         <div style={{marginTop:28,fontSize:13,color:C.text}}>Video starts in <span style={{color:C.accent,fontWeight:900,fontSize:18}}>{count}</span></div>
       </div>

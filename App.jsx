@@ -570,8 +570,39 @@ export default function App() {
         order_id: order.id,
         prefill: {email:userEmail, name:userName},
         notes: {plan:selectedPlan},
-        theme: {color:C.accent},
-        modal: {confirm_close:true},
+        theme: {color:"#E8B84B"},
+        modal: {confirm_close:true, backdropclose:false},
+        method: {
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: true,
+          paylater: true,
+          emi: false,
+        },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "Pay via UPI",
+                instruments: [
+                  {method: "upi", flows: ["qr", "intent", "collect", "web"]},
+                ],
+              },
+              other: {
+                name: "Other Payment Methods",
+                instruments: [
+                  {method: "card"},
+                  {method: "netbanking"},
+                  {method: "wallet"},
+                  {method: "paylater"},
+                ],
+              },
+            },
+            sequence: ["block.upi", "block.other"],
+            preferences: {show_default_blocks: false},
+          },
+        },
         handler: async (response) => {
           try {
             // Server verifies the HMAC signature AND grants premium via

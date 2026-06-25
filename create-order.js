@@ -1,6 +1,8 @@
-import Razorpay from "razorpay";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const Razorpay = require("razorpay");
 
-// Prices in paise (100 paise = ₹1). No GST — below ₹20 lakh threshold.
+// Prices in paise (100 paise = ₹1)
 const PLANS = {
   monthly: { amount: 4900,  rupees: 49  },
   yearly:  { amount: 49900, rupees: 499 },
@@ -17,24 +19,20 @@ export default async function handler(req, res) {
 
   const { plan, userId, userEmail } = req.body || {};
 
-  // Input validation
   if (!PLANS[plan]) return res.status(400).json({ error: "Invalid plan" });
   if (!userId || typeof userId !== "string" || userId.length > 128) {
     return res.status(400).json({ error: "Invalid user" });
-  }
-  if (userEmail && (typeof userEmail !== "string" || userEmail.length > 254)) {
-    return res.status(400).json({ error: "Invalid email" });
   }
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     return res.status(500).json({ error: "Payment system not configured" });
   }
 
-  const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-
   try {
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
     const receipt = `kaash_${userId.slice(0, 15)}_${Date.now()}`;
     const order = await razorpay.orders.create({
       amount: PLANS[plan].amount,
@@ -44,7 +42,7 @@ export default async function handler(req, res) {
     });
     return res.status(200).json({ id: order.id, amount: order.amount, currency: order.currency, plan });
   } catch (error) {
-    console.error("Razorpay order error:", error);
-    return res.status(500).json({ error: "Order creation failed" });
+    console.error("Razorpay order error:", error.message || error);
+    return res.status(500).json({ error: "Order creation failed", detail: error.message });
   }
 }

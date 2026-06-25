@@ -412,6 +412,8 @@ export default function App() {
 
   // ─── FIREBASE AUTH LISTENER ───
   useEffect(()=>{
+    let cancelled = false;
+    let unsub = ()=>{};
     // Load Firebase asynchronously, then wire up auth + data loading.
     // This async boundary is what prevents the Firebase v10 + Vite
     // "Cannot access before initialization" bug — Firebase's module

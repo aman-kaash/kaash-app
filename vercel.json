@@ -1,50 +1,34 @@
-import Razorpay from "razorpay";
-
-// Prices in paise (100 paise = ₹1). No GST — below ₹20 lakh threshold.
-const PLANS = {
-  monthly: { amount: 4900,  rupees: 49  },
-  yearly:  { amount: 49900, rupees: 499 },
-};
-
-const ALLOWED_ORIGIN = "https://kaash-app.vercel.app";
-
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
-  const { plan, userId, userEmail } = req.body || {};
-
-  // Input validation
-  if (!PLANS[plan]) return res.status(400).json({ error: "Invalid plan" });
-  if (!userId || typeof userId !== "string" || userId.length > 128) {
-    return res.status(400).json({ error: "Invalid user" });
-  }
-  if (userEmail && (typeof userEmail !== "string" || userEmail.length > 254)) {
-    return res.status(400).json({ error: "Invalid email" });
-  }
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    return res.status(500).json({ error: "Payment system not configured" });
-  }
-
-  const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-
-  try {
-    const receipt = `kaash_${userId.slice(0, 15)}_${Date.now()}`;
-    const order = await razorpay.orders.create({
-      amount: PLANS[plan].amount,
-      currency: "INR",
-      receipt,
-      notes: { plan, userId, userEmail: userEmail || "", rupees: PLANS[plan].rupees },
-    });
-    return res.status(200).json({ id: order.id, amount: order.amount, currency: order.currency, plan });
-  } catch (error) {
-    console.error("Razorpay order error:", error);
-    return res.status(500).json({ error: "Order creation failed" });
-  }
+{
+  "rewrites": [
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/api/verify-payment", "destination": "/api/verify-payment.js" },
+    { "source": "/api/verify-play-purchase", "destination": "/api/verify-play-purchase.js" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self)" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdn.razorpay.com https://apis.google.com https://www.gstatic.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https://firebasestorage.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com wss://*.firebaseio.com; frame-src 'self' https://accounts.google.com https://kaash-app.firebaseapp.com https://*.razorpay.com; object-src 'none'; base-uri 'self'; manifest-src 'self';" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    }
+  ]
 }
